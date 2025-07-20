@@ -1,0 +1,30 @@
+{
+  "name": "simple-vault",
+  "version": "1.0.0",
+  "description": "Simple Insurance Fund Vault",
+  "main": "index.js",
+  "scripts": {
+    "build": "anchor build",
+    "start": "anchor localnet",
+    "test": "anchor test --skip-local-validator",
+    "deploy": "anchor deploy",
+    "clean": "anchor clean",
+    "cli": "ts-node cli.ts",
+    "reward": "ts-node reward-injection.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.0",
+    "@solana/web3.js": "^1.87.6",
+    "@solana/spl-token": "^0.3.9"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.0",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^9.0.0",
+    "chai": "^4.3.0",
+    "mocha": "^9.0.3",
+    "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.3.5"
+  }
+}

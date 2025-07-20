@@ -1,0 +1,11 @@
+{
+    "programId": "EHiKn3J5wywNG2rHV2Qt74AfNqtJajhPerkVzYXudEwn",
+    "usdt_address": "78Mxm7HWWY8qXSTPWpzcRT9vohtVabfzLtoCdFv1qn3c",
+    "admin_address": "3FJ4EYCddqi4HpGnvXNPuFFwVpoZYahoC2W6y4aY6fxv",
+    "vault_name": "FOCX_Vault",
+    "vault_pda": "5FL2Hn9YCy2x7gubfgyUhXB65riDBUmCRJLJETMND3fa",
+    "vault_token_account": "4TCgwgrJDZcP7UK5qfCvNvhVtCMiTaodZB1qgsoJPHjP",
+    "unstake_lockup_period": "86400s",
+    "management_fee": "0",
+    "min_stake_amount": "100USDT"
+}
