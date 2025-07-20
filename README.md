@@ -33,7 +33,7 @@ A simplified insurance fund vault implementation based on Drift Protocol's archi
 ```typescript
 await program.methods
   .initializeVault({
-    name: Buffer.from("MyVault", "utf8"),
+    name: Buffer.from('MyVault', 'utf8'),
     unstakeLockupPeriod: 14 * 24 * 60 * 60, // 14 days
     managementFee: 200, // 2% (in basis points)
     minStakeAmount: 1000000, // 0.001 tokens
@@ -50,7 +50,7 @@ await program.methods
     rent: SYSVAR_RENT_PUBKEY,
   })
   .signers([owner])
-  .rpc();
+  .rpc()
 ```
 
 ### Stake Tokens
@@ -67,7 +67,7 @@ await program.methods
     tokenProgram: TOKEN_PROGRAM_ID,
   })
   .signers([user])
-  .rpc();
+  .rpc()
 ```
 
 ### Request Unstake
@@ -81,7 +81,7 @@ await program.methods
     authority: user.publicKey,
   })
   .signers([user])
-  .rpc();
+  .rpc()
 ```
 
 ### Execute Unstake (after 14 days)
@@ -98,7 +98,7 @@ await program.methods
     tokenProgram: TOKEN_PROGRAM_ID,
   })
   .signers([user])
-  .rpc();
+  .rpc()
 ```
 
 ### Add Rewards
@@ -114,7 +114,7 @@ await program.methods
     tokenProgram: TOKEN_PROGRAM_ID,
   })
   .signers([owner])
-  .rpc();
+  .rpc()
 ```
 
 ### Claim Rewards
@@ -131,7 +131,7 @@ await program.methods
     tokenProgram: TOKEN_PROGRAM_ID,
   })
   .signers([user])
-  .rpc();
+  .rpc()
 ```
 
 ## Building and Testing
@@ -166,28 +166,28 @@ anchor deploy
 - **Max Total Assets**: Vault capacity limit
 - **Pause Functionality**: Owner can pause/unpause vault
 
+## Unstake Mechanism
 
-## unstake原理
-unstake后的资金不会自动到用户钱包。合约采用的是两阶段unstake机制：
+After unstaking, funds are not automatically transferred to the user's wallet. The contract uses a two-phase unstake mechanism:
 
-### 🔄 Unstake机制说明
+### 🔄 Unstake Mechanism Explanation
 
-1. 第一阶段：申请unstake
+1. **Phase 1: Request Unstake**
 
-  - 用户调用 request_unstake() 函数
-  - 创建一个unstake请求，记录请求时间和shares数量
-  - 开始等待锁定期（默认14天）
+- User calls the `request_unstake()` function
+- Creates an unstake request, recording the request time and shares amount
+- Begins waiting for the lockup period (default 14 days)
 
-2. 第二阶段：执行unstake
+2. **Phase 2: Execute Unstake**
 
-  - 等待期结束后，用户必须主动调用 unstake() 函数
-  - 合约会检查 can_unstake() 确认等待期已过
-  - 只有调用 unstake() 后，资金才会从vault转移到用户钱包
+- After the waiting period ends, user must actively call the `unstake()` function
+- Contract checks `can_unstake()` to confirm the waiting period has passed
+- Only after calling `unstake()` will funds be transferred from vault to user wallet
 
-### 📍 关键代码逻辑
+### 📍 Key Code Logic
 
 ```rust
-  // 检查是否可以unstake (vault_depositor.rs:145-151)
+  // Check if unstake is possible (vault_depositor.rs:145-151)
   pub fn can_unstake(&self, current_time: i64, lockup_period: i64) -> bool {
       if !self.unstake_request.is_pending() {
           return false;
@@ -196,21 +196,21 @@ unstake后的资金不会自动到用户钱包。合约采用的是两阶段unst
       current_time >= self.unstake_request.request_time + lockup_period
   }
 
-  // 执行unstake时的资金转移 (unstake.rs:62-70)
+  // Fund transfer during unstake execution (unstake.rs:62-70)
   let cpi_accounts = Transfer {
       from: ctx.accounts.vault_token_account.to_account_info(),
       to: ctx.accounts.user_token_account.to_account_info(),
       authority: vault.to_account_info(),
   };
-  token::transfer(cpi_ctx, amount)?;  // 实际转账发生在这里
+  token::transfer(cpi_ctx, amount)?;  // Actual transfer happens here
 
 ```
 
-### ⚠️ 重要提醒
-  1. 需要主动操作 - 等待期结束后，用户需要主动调用unstake函数
-  2. 不会自动转账 - 资金不会自动到达用户钱包
-  3. 有时间限制 - 必须等待完整的锁定期（14天）才能执行unstake
+### ⚠️ Important Notes
 
+1. **Active Operation Required** - After the waiting period ends, users need to actively call the unstake function
+2. **No Automatic Transfer** - Funds will not automatically reach the user's wallet
+3. **Time Restriction** - Must wait for the complete lockup period (14 days) before executing unstake
 
 ## License
 
