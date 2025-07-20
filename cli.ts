@@ -6,11 +6,11 @@ import * as os from "os";
 import { PublicKey } from "@solana/web3.js";
 import contract_info from "./contract_info.json";
 
-// 命令行参数解析
+// Command line parameter parsing
 const args = process.argv.slice(2);
 const command = args[0];
 
-// 帮助信息
+// Help information
 const HELP_TEXT = `
 🏦 Vault CLI - User operation tool
 
@@ -46,7 +46,7 @@ Examples:
   node cli.ts --wallet ./my-wallet.json stake 200  # Use specified wallet to stake 200 USDT
 `;
 
-// 获取选项值
+// Get option value
 function getOption(option: string, defaultValue?: string): string | undefined {
   const index = args.indexOf(option);
   if (index > -1 && index + 1 < args.length) {
@@ -55,9 +55,9 @@ function getOption(option: string, defaultValue?: string): string | undefined {
   return defaultValue;
 }
 
-// 加载配置
+// Load configuration
 async function loadConfig() {
-  // 从contract_info.json加载配置
+  // Load configuration from contract_info.json
   const config = createConfig(
     contract_info.programId,
     contract_info.vault_name || "FOCX_Vault",
@@ -65,7 +65,7 @@ async function loadConfig() {
     getOption("--rpc", "https://api.devnet.solana.com") || "https://api.devnet.solana.com"
   );
 
-  // 加载钱包
+  // Load wallet
   const walletPath = getOption("--wallet", `${os.homedir()}/.config/solana/id.json`) || `${os.homedir()}/.config/solana/id.json`;
   
   if (!fs.existsSync(walletPath)) {
@@ -79,7 +79,7 @@ async function loadConfig() {
   return { config, wallet };
 }
 
-// 主函数
+// Main function
 async function main() {
   try {
     if (!command || command === "help") {
@@ -87,11 +87,11 @@ async function main() {
       return;
     }
 
-    // 加载配置
+    // Load configuration
     const { config, wallet } = await loadConfig();
     const operations = new VaultUserOperations(config, wallet);
 
-    // 执行命令
+    // Execute command
     switch (command) {
       case "init":
         console.log("🔧 Initializing user depositor account...");
@@ -175,5 +175,4 @@ async function main() {
   }
 }
 
-// 运行主函数
 main();
