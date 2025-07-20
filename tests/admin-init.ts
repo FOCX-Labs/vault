@@ -20,31 +20,31 @@ import * as os from "os";
 import contract_info from "../contract_info.json";
 
 describe("admin_initialization", () => {
-  // 设置Anchor环境
+  // Set Anchor environment
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.SimpleVault as Program<SimpleVault>;
   
-  // 声明所有需要的变量
-  let tokenMint: PublicKey;              // USDT token mint地址
-  let vaultPDA: PublicKey;               // Vault PDA地址
-  let vaultTokenAccount: PublicKey;      // Vault token账户地址
-  let rewardsTokenAccount: PublicKey;    // Rewards token账户地址
-  let owner: Keypair;                    // Admin/Owner钱包
-  let rewardSourceAccount: PublicKey;    // 奖励来源账户
+  // Declare all needed variables
+  let tokenMint: PublicKey;              // USDT token mint address
+  let vaultPDA: PublicKey;               // Vault PDA address
+  let vaultTokenAccount: PublicKey;      // Vault token account address
+  let rewardsTokenAccount: PublicKey;    // Rewards token account address
+  let owner: Keypair;                    // Admin/Owner wallet
+  let rewardSourceAccount: PublicKey;    // Reward source account
   
-  // Vault配置参数
-  const vaultName = "FOCX_Vault";         // Vault名称
+  // Vault configuration parameters
+  const vaultName = "FOCX_Vault";         // Vault name
   const vaultNameBuffer = Buffer.alloc(32);
   vaultNameBuffer.write(vaultName);
   
   it("Initialize vault contract (Admin Only)", async () => {
-    console.log("🚀 开始初始化Vault合约...");
+    console.log("🚀 Start initializing Vault contract...");
     
-    // ========== 第1步: 加载本地Admin钱包 ==========
-    console.log("\n📋 第1步: 加载本地Admin钱包");
+    // ========== Step 1: Load local Admin wallet ==========
+    console.log("\n📋 Step 1: Load local Admin wallet");
     
-    // 尝试多个可能的id.json路径
+    // Try multiple possible id.json paths
     const possiblePaths = [
       `${os.homedir()}/.config/solana/id.json`,
       `${os.homedir()}/.config/solana/devnet.json`,
@@ -62,63 +62,63 @@ describe("admin_initialization", () => {
           const data = fs.readFileSync(path, "utf8");
           adminKeypairData = JSON.parse(data);
           usedPath = path;
-          console.log(`✅ 找到admin钱包文件: ${path}`);
+          console.log(`✅ Found admin wallet file: ${path}`);
           break;
         }
       } catch (error) {
-        console.log(`⚠️  无法读取 ${path}: ${error}`);
+        console.log(`⚠️  Unable to read ${path}: ${error}`);
       }
     }
     
     if (!adminKeypairData) {
-      throw new Error("❌ 未找到admin钱包文件。请确保 ~/.config/solana/id.json 存在");
+      throw new Error("❌ Admin wallet file not found. Please ensure ~/.config/solana/id.json exists");
     }
     
-    // 创建Keypair对象
+    // Create Keypair object
     owner = Keypair.fromSecretKey(Buffer.from(adminKeypairData));
-    console.log(`✅ Admin钱包地址: ${owner.publicKey.toString()}`);
-    console.log(`📁 使用的钱包文件: ${usedPath}`);
+    console.log(`✅ Admin wallet address: ${owner.publicKey.toString()}`);
+    console.log(`📁 Used wallet file: ${usedPath}`);
     
-    // 验证钱包地址是否匹配
+    // Verify wallet address matches
     const expectedAddress = "3FJ4EYCddqi4HpGnvXNPuFFwVpoZYahoC2W6y4aY6fxv";
     if (owner.publicKey.toString() === expectedAddress) {
-      console.log(`✅ 钱包地址验证成功: ${expectedAddress}`);
+      console.log(`✅ Wallet address verification successful: ${expectedAddress}`);
     } else {
-      console.log(`⚠️  钱包地址不匹配:`);
-      console.log(`   期望: ${expectedAddress}`);
-      console.log(`   实际: ${owner.publicKey.toString()}`);
+      console.log(`⚠️  Wallet address mismatch:`);
+      console.log(`   Expected: ${expectedAddress}`);
+      console.log(`   Actual: ${owner.publicKey.toString()}`);
     }
     
-    // 检查SOL余额
+    // Check SOL balance
     const balance = await provider.connection.getBalance(owner.publicKey);
-    console.log(`✅ Admin钱包SOL余额: ${balance / anchor.web3.LAMPORTS_PER_SOL} SOL`);
+    console.log(`✅ Admin wallet SOL balance: ${balance / anchor.web3.LAMPORTS_PER_SOL} SOL`);
     
     if (balance < 0.1 * anchor.web3.LAMPORTS_PER_SOL) {
-      console.log("⚠️  SOL余额不足，建议至少0.1 SOL用于交易费用");
+      console.log("⚠️  SOL balance insufficient, at least 0.1 SOL for transaction fees");
     }
   
-    // ========== 第2步: 创建USDT Token Mint ==========
-    console.log("\n📋 第2步: 创建USDT Token Mint (6位小数)");
+    // ========== Step 2: Create USDT Token Mint ==========
+    console.log("\n📋 Step 2: Create USDT Token Mint (6 decimal places)");
     
-    // 检查是否有预配置的token mint
+    // Check if there is a pre-configured token mint
     if (contract_info && contract_info.usdt_address) {
-      console.log("📝 使用预配置的USDT token mint...");
+      console.log("📝 Using pre-configured USDT token mint...");
       tokenMint = new PublicKey(contract_info.usdt_address);
-      console.log(`✅ 使用现有USDT Token Mint: ${tokenMint.toString()}`);
+      console.log(`✅ Using existing USDT Token Mint: ${tokenMint.toString()}`);
     } else {
-      console.log("📝 创建新的USDT token mint...");
+      console.log("📝 Creating new USDT token mint...");
       tokenMint = await createMint(
         provider.connection,
-        owner,                    // 付费者
+        owner,                    // Payer
         owner.publicKey,          // mint authority
-        null,                     // freeze authority (不设置)
-        6                         // USDT标准6位小数
+        null,                     // freeze authority (not set)
+        6                         // USDT standard 6 decimal places
       );
-      console.log(`✅ 新创建USDT Token Mint: ${tokenMint.toString()}`);
+      console.log(`✅ Newly created USDT Token Mint: ${tokenMint.toString()}`);
     }
 
-    // ========== 第3步: 计算所有PDA地址 ==========
-    console.log("\n📋 第3步: 计算PDA地址");
+    // ========== Step 3: Calculate all PDA addresses ==========
+    console.log("\n📋 Step 3: Calculate all PDA addresses");
     
     // Vault PDA: ["vault", vault_name]
     [vaultPDA] = PublicKey.findProgramAddressSync(
@@ -135,53 +135,53 @@ describe("admin_initialization", () => {
     console.log(`✅ Vault Token Account: ${vaultTokenAccount.toString()}`);
     
     // Rewards Token Account PDA: ["rewards_token_account", vault_pda]
-    // 注意：这个账户在当前实现中是多余的，奖励应该直接进入vault_token_account
-    // 但为了兼容现有合约结构，仍然需要创建
+    // Note: This account is redundant in the current implementation, rewards should be directly deposited into vault_token_account
+    // But for compatibility with existing contract structure, it is still necessary to create it
     [rewardsTokenAccount] = PublicKey.findProgramAddressSync(
       [Buffer.from("rewards_token_account"), vaultPDA.toBuffer()],
       program.programId
     );
     console.log(`✅ Rewards Token Account: ${rewardsTokenAccount.toString()}`);
     
-    // ========== 第4步: 创建奖励来源账户 ==========
-    console.log("\n📋 第4步: 创建奖励来源账户");
+    // ========== Step 4: Create reward source account ==========
+    console.log("\n📋 Step 4: Create reward source account");
     
     try {
-      // 使用Associated Token Account
+      // Use Associated Token Account
       rewardSourceAccount = await getAssociatedTokenAddress(
         tokenMint,
         owner.publicKey
       );
       
-      // 检查账户是否已存在
+      // Check if account already exists
       const accountInfo = await provider.connection.getAccountInfo(rewardSourceAccount);
       if (!accountInfo) {
-        console.log("📝 创建Associated Token Account...");
+        console.log("📝 Creating Associated Token Account...");
         await createAssociatedTokenAccount(
           provider.connection,
-          owner,                    // 付费者
+          owner,                    // Payer
           tokenMint,               // token mint
-          owner.publicKey          // 账户所有者
+          owner.publicKey          // Account owner
         );
       }
       
-      console.log(`✅ 奖励来源账户: ${rewardSourceAccount.toString()}`);
+      console.log(`✅ Reward source account: ${rewardSourceAccount.toString()}`);
     } catch (error) {
-      console.error("❌ 创建奖励来源账户失败:", error);
+      console.error("❌ Failed to create reward source account:", error);
       
-      // 回退到普通token账户创建方式
-      console.log("🔄 尝试使用普通Token账户...");
+      // Fall back to regular token account creation
+      console.log("🔄 Trying to create regular token account...");
       rewardSourceAccount = await createAccount(
         provider.connection,
-        owner,                    // 付费者
+        owner,                    // Payer
         tokenMint,               // token mint
-        owner.publicKey          // 账户所有者
+        owner.publicKey          // Account owner
       );
-      console.log(`✅ 奖励来源账户 (普通): ${rewardSourceAccount.toString()}`);
+      console.log(`✅ Reward source account (regular): ${rewardSourceAccount.toString()}`);
     }
     
-    // ========== 第5步: 铸造USDT到奖励来源账户 ==========
-    console.log("\n📋 第5步: 铸造USDT到奖励来源账户");
+    // ========== Step 5: Mint USDT to reward source account ==========
+    console.log("\n📋 Step 5: Mint USDT to reward source account");
     const rewardAmount = 1_000_000; // 1 USDT
     
     try {
@@ -193,83 +193,83 @@ describe("admin_initialization", () => {
         owner.publicKey,
         rewardAmount
       );
-      console.log(`✅ 已铸造 ${rewardAmount / 1e6} USDT 到奖励来源账户`);
+      console.log(`✅ Minted ${rewardAmount / 1e6} USDT to reward source account`);
     } catch (error) {
-      console.error("❌ 铸造USDT失败:", error);
-      console.log("⚠️  可能原因:");
-      console.log("   1. 当前钱包不是token mint的authority");
-      console.log("   2. 使用的是现有token mint，没有mint权限");
-      console.log("   3. 需要从其他来源获取USDT");
+      console.error("❌ Failed to mint USDT:", error);
+      console.log("⚠️  Possible reasons:");
+      console.log("   1. Current wallet is not the authority of token mint");
+      console.log("   2. Using existing token mint, no mint authority");
+      console.log("   3. Need to get USDT from other sources");
       
-      // 如果mint失败，跳过这一步但继续初始化
-      console.log("🔄 跳过铸造步骤，继续初始化vault...");
+      // If mint fails, skip this step but continue with initialization
+      console.log("🔄 Skipping minting step, continuing with initialization...");
     }
     
-    console.log(`📝 注意: rewardsTokenAccount保持余额为0，这是正常的`);
+    console.log(`📝 Note: rewardsTokenAccount should maintain a balance of 0, this is normal`);
     
-    // ========== 第6步: 初始化Vault合约 ==========
-    console.log("\n📋 第6步: 初始化Vault合约");
-    console.log("📝 Vault配置参数:");
-    console.log(`   - 名称: ${vaultName}`);
-    console.log(`   - 解质押锁定期: 1天 (86,400秒)`);
-    console.log(`   - 管理费率: 0% 年化 (000基点)`);
-    console.log(`   - 最小质押金额: 100 USDT`);
-    console.log(`   - 最大总资产: 无限制`);
+    // ========== Step 6: Initialize Vault contract ==========
+    console.log("\n📋 Step 6: Initialize Vault contract");
+    console.log("📝 Vault configuration parameters:");
+    console.log(`   - Name: ${vaultName}`);
+    console.log(`   - Unstake lockup period: 1 day (86,400 seconds)`);
+    console.log(`   - Management fee: 0% annualized (000 basis points)`);
+    console.log(`   - Minimum stake amount: 100 USDT`);
+    console.log(`   - Maximum total assets: Unlimited`);
     
     await program.methods
       .initializeVault({
-        name: Array.from(vaultNameBuffer),           // Vault名称 (32字节)
-        unstakeLockupPeriod: new anchor.BN(24 * 60 * 60), // 1天锁定期 (最小要求)
-        managementFee: new anchor.BN(0),           // 0%年化管理费 (000基点)
-        minStakeAmount: new anchor.BN(100_000_000),    // 100 USDT最小质押
-        maxTotalAssets: null,                        // 无资产上限
+        name: Array.from(vaultNameBuffer),           // Vault name (32 bytes)
+        unstakeLockupPeriod: new anchor.BN(24 * 60 * 60), // 1 day lockup period (minimum requirement)
+        managementFee: new anchor.BN(0),           // 0% annualized management fee (000 basis points)
+        minStakeAmount: new anchor.BN(100_000_000),    // 100 USDT minimum stake
+        maxTotalAssets: null,                        // Unlimited total assets
       })
       .accounts({
         vault: vaultPDA,                             // Vault PDA
-        owner: owner.publicKey,                      // Admin钱包
+        owner: owner.publicKey,                      // Admin wallet
         tokenMint: tokenMint,                        // USDT mint
-        vaultTokenAccount: vaultTokenAccount,        // Vault token账户
-        rewardsTokenAccount: rewardsTokenAccount,    // 奖励token账户
-        tokenProgram: TOKEN_PROGRAM_ID,              // SPL Token程序
-        systemProgram: SystemProgram.programId,     // 系统程序
+        vaultTokenAccount: vaultTokenAccount,        // Vault token account
+        rewardsTokenAccount: rewardsTokenAccount,    // Reward token account
+        tokenProgram: TOKEN_PROGRAM_ID,              // SPL Token program
+        systemProgram: SystemProgram.programId,     // System program
         rent: SYSVAR_RENT_PUBKEY,                   // Rent sysvar
       })
-      .signers([owner])                             // Admin签名
+      .signers([owner])                             // Admin signature
       .rpc();
     
-    console.log("✅ Vault合约初始化成功!");
+    console.log("✅ Vault contract initialization successful!");
     
-    // ========== 第7步: 验证初始化结果 ==========
-    console.log("\n📋 第7步: 验证初始化结果");
+    // ========== Step 7: Verify initialization results ==========
+    console.log("\n📋 Step 7: Verify initialization results");
     const vault = await program.account.vault.fetch(vaultPDA);
     
-    console.log("🔍 Vault状态验证:");
+    console.log("🔍 Vault status verification:");
     console.log(`   ✅ Owner: ${vault.owner.toString()}`);
     console.log(`   ✅ Token Mint: ${vault.tokenMint.toString()}`);
     console.log(`   ✅ Total Shares: ${vault.totalShares.toString()}`);
     console.log(`   ✅ Total Assets: ${vault.totalAssets.toString()}`);
-    console.log(`   ✅ Management Fee: ${vault.managementFee.toString()} 基点 (${vault.managementFee.toNumber() / 100}%)`);
+    console.log(`   ✅ Management Fee: ${vault.managementFee.toString()} basis points (${vault.managementFee.toNumber() / 100}%)`);
     console.log(`   ✅ Min Stake Amount: ${vault.minStakeAmount.toNumber() / 1e6} USDT`);
-    console.log(`   ✅ Lockup Period: ${vault.unstakeLockupPeriod.toNumber() / 86400} 天`);
+    console.log(`   ✅ Lockup Period: ${vault.unstakeLockupPeriod.toNumber() / 86400} days`);
     console.log(`   ✅ Is Paused: ${vault.isPaused}`);
     console.log(`   ✅ Created At: ${new Date(vault.createdAt.toNumber() * 1000).toISOString()}`);
     
-    // ========== 初始化完成总结 ==========
-    console.log("\n🎉 ========== 初始化完成总结 ==========");
-    console.log(`🏛️  Vault名称: ${vaultName}`);
-    console.log(`🔑 Admin地址: ${owner.publicKey.toString()}`);
+    // ========== Initialization complete summary ==========
+    console.log("\n🎉 ========== Initialization complete summary ==========");
+    console.log(`🏛️  Vault name: ${vaultName}`);
+    console.log(`🔑 Admin address: ${owner.publicKey.toString()}`);
     console.log(`💰 Token Mint: ${tokenMint.toString()}`);
     console.log(`📦 Vault PDA: ${vaultPDA.toString()}`);
     console.log(`🏦 Vault Token Account: ${vaultTokenAccount.toString()}`);
     console.log(`🎁 Rewards Token Account: ${rewardsTokenAccount.toString()}`);
-    console.log(`💸 奖励来源账户: ${rewardSourceAccount.toString()}`);
-    console.log(`💼 管理费率: ${vault.managementFee.toNumber() / 100}% 年化`);
-    console.log(`⏰ 解质押锁定期: ${vault.unstakeLockupPeriod.toNumber() / 86400} 天`);
-    console.log(`💵 最小质押: ${vault.minStakeAmount.toNumber() / 1e6} USDT`);
-    console.log("\n✅ Vault已成功初始化，用户现在可以开始质押!");
+    console.log(`💸 Reward source account: ${rewardSourceAccount.toString()}`);
+    console.log(`💼 Management fee: ${vault.managementFee.toNumber() / 100}% annualized`);
+    console.log(`⏰ Unstake lockup period: ${vault.unstakeLockupPeriod.toNumber() / 86400} days`);
+    console.log(`💵 Minimum stake: ${vault.minStakeAmount.toNumber() / 1e6} USDT`);
+    console.log("\n✅ Vault has been successfully initialized, users can now start staking!");
     
-    // ========== 保存重要信息到环境变量建议 ==========
-    console.log("\n📝 建议保存以下信息到环境变量:");
+    // ========== Save important information to environment variables ==========
+    console.log("\n📝 Suggest saving the following information to environment variables:");
     console.log(`export VAULT_PROGRAM_ID="${program.programId.toString()}"`);
     console.log(`export VAULT_NAME="${vaultName}"`);
     console.log(`export TOKEN_MINT="${tokenMint.toString()}"`);

@@ -68,6 +68,8 @@ class RewardInjector {
   }
 
   // 注入奖励
+  // - vault_token_account: 存储用户质押的本金
+  // - rewards_token_account: 存储待分配的奖励
   async injectRewards(amountUsdt: number): Promise<string> {
     try {
       const amountRaw = Math.floor(amountUsdt * 1e6); // 转换为最小单位
