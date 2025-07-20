@@ -12,38 +12,38 @@ const command = args[0];
 
 // 帮助信息
 const HELP_TEXT = `
-🏦 Vault CLI - 用户操作工具
+🏦 Vault CLI - User operation tool
 
-使用方法:
+Usage:
   node cli.ts <command> [options]
 
-可用命令:
-  help                    显示帮助信息
-  init                    初始化用户depositor账户
-  stake <amount>          质押指定金额 (USDT)
-  request-unstake <amount> 请求解质押指定金额
-  unstake                 执行解质押 (需要锁定期结束)
-  cancel-unstake          取消解质押请求
-  sync-rebase             同步rebase
-  info                    查看vault信息
-  balance                 查看用户token余额
-  user-info               查看用户depositor信息
-  asset-value             查看用户资产价值
-  unstake-status          查看解质押请求状态
-  report                  生成完整用户报告
+Available commands:
+  help                     Show help information
+  init                     Initialize user depositor account
+  stake <amount>           Stake specified amount (USDT)
+  request-unstake <amount> Request unstake specified amount
+  unstake                  Execute unstake (requires lockup period to end)
+  cancel-unstake           Cancel unstake request
+  sync-rebase              Sync rebase
+  info                     View vault information
+  balance                  View user token balance
+  user-info                View user depositor information
+  asset-value              View user asset value
+  unstake-status           View unstake request status
+  report                   Generate complete user report
 
-配置选项:
-  --wallet <path>         指定钱包文件路径 (默认: ~/.config/solana/id.json)
-  --rpc <url>             指定RPC节点URL (默认: devnet)
+Configuration options:
+  --wallet <path>          Specify wallet file path (default: ~/.config/solana/id.json)
+  --rpc <url>              Specify RPC node URL (default: devnet)
 
-示例:
-  node cli.ts init                          # 初始化用户账户
-  node cli.ts stake 100                     # 质押100 USDT
-  node cli.ts request-unstake 50            # 请求解质押50 USDT
-  node cli.ts report                        # 查看完整报告
-  node cli.ts info                          # 查看vault信息
-  node cli.ts balance                       # 查看USDT余额
-  node cli.ts --wallet ./my-wallet.json stake 200  # 使用指定钱包质押200 USDT
+Examples:
+  node cli.ts init                          # Initialize user account
+  node cli.ts stake 100                     # Stake 100 USDT
+  node cli.ts request-unstake 50            # Request unstake 50 USDT
+  node cli.ts report                        # View complete report
+  node cli.ts info                          # View vault information
+  node cli.ts balance                       # View USDT balance
+  node cli.ts --wallet ./my-wallet.json stake 200  # Use specified wallet to stake 200 USDT
 `;
 
 // 获取选项值
@@ -69,12 +69,12 @@ async function loadConfig() {
   const walletPath = getOption("--wallet", `${os.homedir()}/.config/solana/id.json`) || `${os.homedir()}/.config/solana/id.json`;
   
   if (!fs.existsSync(walletPath)) {
-    throw new Error(`钱包文件不存在: ${walletPath}`);
+    throw new Error(`Wallet file does not exist: ${walletPath}`);
   }
   
   const wallet = loadWallet(walletPath);
-  console.log(`🔑 使用钱包: ${wallet.publicKey.toString()}`);
-  console.log(`📄 钱包文件: ${walletPath}`);
+  console.log(`🔑 Using wallet: ${wallet.publicKey.toString()}`);
+  console.log(`📄 Wallet file: ${walletPath}`);
   
   return { config, wallet };
 }
@@ -94,83 +94,83 @@ async function main() {
     // 执行命令
     switch (command) {
       case "init":
-        console.log("🔧 初始化用户depositor账户...");
+        console.log("🔧 Initializing user depositor account...");
         await operations.initializeDepositor();
         break;
 
       case "stake":
         const stakeAmount = parseFloat(args[1]);
         if (isNaN(stakeAmount) || stakeAmount <= 0) {
-          throw new Error("请提供有效的质押金额");
+          throw new Error("Please provide a valid stake amount");
         }
-        console.log(`💰 质押 ${stakeAmount} USDT...`);
+        console.log(`💰 Staking ${stakeAmount} USDT...`);
         await operations.stake(stakeAmount * 1e6);
         break;
 
       case "request-unstake":
         const requestAmount = parseFloat(args[1]);
         if (isNaN(requestAmount) || requestAmount <= 0) {
-          throw new Error("请提供有效的解质押金额");
+          throw new Error("Please provide a valid unstake amount");
         }
-        console.log(`📤 请求解质押 ${requestAmount} USDT...`);
+        console.log(`📤 Requesting unstake ${requestAmount} USDT...`);
         await operations.requestUnstake(requestAmount * 1e6);
         break;
 
       case "unstake":
-        console.log("💸 执行解质押...");
+        console.log("💸 Executing unstake...");
         await operations.unstake();
         break;
 
       case "cancel-unstake":
-        console.log("🚫 取消解质押请求...");
+        console.log("🚫 Cancelling unstake request...");
         await operations.cancelUnstakeRequest();
         break;
 
       case "sync-rebase":
-        console.log("🔄 同步rebase...");
+        console.log("🔄 Syncing rebase...");
         await operations.syncRebase();
         break;
 
       case "info":
-        console.log("📊 获取vault信息...");
+        console.log("📊 Getting vault information...");
         await operations.getVaultInfo();
         break;
 
       case "balance":
-        console.log("💰 查询用户token余额...");
+        console.log("💰 Getting user token balance...");
         await operations.getUserTokenBalance();
         break;
 
       case "user-info":
-        console.log("👤 查询用户depositor信息...");
+        console.log("👤 Getting user depositor information...");
         await operations.getUserInfo();
         break;
 
       case "asset-value":
-        console.log("💎 计算用户资产价值...");
+        console.log("💎 Calculating user asset value...");
         await operations.getUserAssetValue();
         break;
 
       case "unstake-status":
-        console.log("⏰ 检查解质押请求状态...");
+        console.log("⏰ Checking unstake request status...");
         await operations.checkUnstakeRequestStatus();
         break;
 
       case "report":
-        console.log("📋 生成完整用户报告...");
+        console.log("📋 Generating complete user report...");
         await operations.getUserReport();
         break;
 
       default:
-        console.error(`❌ 未知命令: ${command}`);
-        console.log("\n使用 'node cli.ts help' 查看帮助信息");
+        console.error(`❌ Unknown command: ${command}`);
+        console.log("\nUse 'node cli.ts help' to view help information");
         process.exit(1);
     }
 
-    console.log("\n✅ 操作完成!");
+    console.log("\n✅ Operation completed!");
     
   } catch (error) {
-    console.error("❌ 操作失败:", error);
+    console.error("❌ Operation failed:", error);
     process.exit(1);
   }
 }
