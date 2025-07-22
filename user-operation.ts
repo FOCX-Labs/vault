@@ -15,7 +15,7 @@ import {
 } from "@solana/web3.js";
 import * as fs from "fs";
 
-// 配置信息
+// config
 interface VaultConfig {
   programId: PublicKey;
   vaultName: string;
@@ -23,7 +23,7 @@ interface VaultConfig {
   rpcUrl: string;
 }
 
-// 用户操作类
+// user operations
 export class VaultUserOperations {
   private program: Program<SimpleVault>;
   private provider: anchor.AnchorProvider;
@@ -34,7 +34,7 @@ export class VaultUserOperations {
     this.config = config;
     this.userWallet = userWallet;
     
-    // 设置连接
+    // set connection
     const connection = new Connection(config.rpcUrl, "confirmed");
     this.provider = new anchor.AnchorProvider(
       connection,
@@ -42,26 +42,26 @@ export class VaultUserOperations {
       { commitment: "confirmed" }
     );
     
-    // 设置程序
+    // set program
     anchor.setProvider(this.provider);
     
-    // 动态加载IDL
+    // load idl
     let idl;
     try {
       idl = JSON.parse(fs.readFileSync("./target/idl/simple_vault.json", "utf8"));
     } catch (error) {
-      console.warn("无法加载本地IDL文件，尝试使用相对路径...");
+      console.warn("Failed to load local IDL file, trying relative path...");
       try {
         idl = require("./target/idl/simple_vault.json");
       } catch (e) {
-        throw new Error("无法加载IDL文件。请确保已编译合约并生成IDL文件。");
+        throw new Error("Failed to load IDL file. Please ensure the contract is compiled and the IDL file is generated.");
       }
     }
     
     this.program = new Program(idl, this.provider) as Program<SimpleVault>;
   }
 
-  // 获取PDA地址
+  // get pda address
   private getVaultPDA(): [PublicKey, number] {
     const vaultNameBuffer = Buffer.alloc(32);
     vaultNameBuffer.write(this.config.vaultName);
@@ -94,13 +94,13 @@ export class VaultUserOperations {
     );
   }
 
-  // 1. 初始化用户depositor账户
+  // 1. initialize user depositor account
   async initializeDepositor(): Promise<string> {
     try {
       const [vaultPDA] = this.getVaultPDA();
       const [vaultDepositorPDA] = this.getVaultDepositorPDA();
 
-      console.log("🔧 初始化用户depositor账户...");
+      console.log("🔧 initialize user depositor account...");
       console.log(`Vault PDA: ${vaultPDA.toString()}`);
       console.log(`User Depositor PDA: ${vaultDepositorPDA.toString()}`);
 
@@ -115,31 +115,31 @@ export class VaultUserOperations {
         .signers([this.userWallet])
         .rpc();
 
-      console.log("✅ Depositor账户初始化成功!");
+      console.log("✅ depositor account initialized successfully!");
       console.log(`Transaction: ${tx}`);
       return tx;
     } catch (error) {
-      console.error("❌ 初始化depositor账户失败:", error);
+      console.error("❌ initialize depositor account failed:", error);
       throw error;
     }
   }
 
-  // 2. 质押操作
+  // 2. stake operation
   async stake(amount: number): Promise<string> {
     try {
       const [vaultPDA] = this.getVaultPDA();
       const [vaultDepositorPDA] = this.getVaultDepositorPDA();
       const [vaultTokenAccountPDA] = this.getVaultTokenAccountPDA();
 
-      // 获取用户token账户
+      // get user token account
       const userTokenAccount = await getAssociatedTokenAddress(
         this.config.tokenMint,
         this.userWallet.publicKey
       );
 
-      console.log("💰 执行质押操作...");
-      console.log(`质押金额: ${amount / 1e6} USDT`);
-      console.log(`用户Token账户: ${userTokenAccount.toString()}`);
+      console.log("💰 execute stake operation...");
+      console.log(`stake amount: ${amount / 1e6} USDT`);
+      console.log(`user token account: ${userTokenAccount.toString()}`);
 
       const tx = await this.program.methods
         .stake(new anchor.BN(amount))
@@ -154,23 +154,23 @@ export class VaultUserOperations {
         .signers([this.userWallet])
         .rpc();
 
-      console.log("✅ 质押成功!");
+      console.log("✅ stake operation successful!");
       console.log(`Transaction: ${tx}`);
       return tx;
     } catch (error) {
-      console.error("❌ 质押失败:", error);
+      console.error("❌ stake operation failed:", error);
       throw error;
     }
   }
 
-  // 3. 请求解质押
+  // 3. request unstake
   async requestUnstake(amount: number): Promise<string> {
     try {
       const [vaultPDA] = this.getVaultPDA();
       const [vaultDepositorPDA] = this.getVaultDepositorPDA();
 
-      console.log("📤 请求解质押...");
-      console.log(`解质押金额: ${amount / 1e6} USDT`);
+      console.log("📤 request unstake...");
+      console.log(`unstake amount: ${amount / 1e6} USDT`);
 
       const tx = await this.program.methods
         .requestUnstake(new anchor.BN(amount))
@@ -182,30 +182,30 @@ export class VaultUserOperations {
         .signers([this.userWallet])
         .rpc();
 
-      console.log("✅ 解质押请求提交成功!");
+      console.log("✅ request unstake submitted successfully!");
       console.log(`Transaction: ${tx}`);
-      console.log("⏰ 请等待锁定期结束后执行unstake操作");
+      console.log("⏰ please wait for the lockup period to end and execute the unstake operation");
       return tx;
     } catch (error) {
-      console.error("❌ 请求解质押失败:", error);
+      console.error("❌ request unstake failed:", error);
       throw error;
     }
   }
 
-  // 4. 执行解质押
+  // 4. execute unstake
   async unstake(): Promise<string> {
     try {
       const [vaultPDA] = this.getVaultPDA();
       const [vaultDepositorPDA] = this.getVaultDepositorPDA();
       const [vaultTokenAccountPDA] = this.getVaultTokenAccountPDA();
 
-      // 获取用户token账户
+      // get user token account
       const userTokenAccount = await getAssociatedTokenAddress(
         this.config.tokenMint,
         this.userWallet.publicKey
       );
 
-      console.log("💸 执行解质押...");
+      console.log("💸 execute unstake...");
 
       const tx = await this.program.methods
         .unstake()
@@ -220,22 +220,22 @@ export class VaultUserOperations {
         .signers([this.userWallet])
         .rpc();
 
-      console.log("✅ 解质押成功!");
+      console.log("✅ unstake operation successful!");
       console.log(`Transaction: ${tx}`);
       return tx;
     } catch (error) {
-      console.error("❌ 解质押失败:", error);
+      console.error("❌ unstake operation failed:", error);
       throw error;
     }
   }
 
-  // 5. 取消解质押请求
+  // 5. cancel unstake request
   async cancelUnstakeRequest(): Promise<string> {
     try {
       const [vaultPDA] = this.getVaultPDA();
       const [vaultDepositorPDA] = this.getVaultDepositorPDA();
 
-      console.log("🚫 取消解质押请求...");
+      console.log("🚫 cancel unstake request...");
 
       const tx = await this.program.methods
         .cancelUnstakeRequest()
@@ -247,22 +247,22 @@ export class VaultUserOperations {
         .signers([this.userWallet])
         .rpc();
 
-      console.log("✅ 解质押请求已取消!");
+      console.log("✅ unstake request cancelled!");
       console.log(`Transaction: ${tx}`);
       return tx;
     } catch (error) {
-      console.error("❌ 取消解质押请求失败:", error);
+      console.error("❌ cancel unstake request failed:", error);
       throw error;
     }
   }
 
-  // 6. 同步rebase
+  // 6. sync rebase
   async syncRebase(): Promise<string> {
     try {
       const [vaultPDA] = this.getVaultPDA();
       const [vaultDepositorPDA] = this.getVaultDepositorPDA();
 
-      console.log("🔄 同步rebase...");
+      console.log("🔄 sync rebase...");
 
       const tx = await this.program.methods
         .syncRebase()
@@ -274,70 +274,70 @@ export class VaultUserOperations {
         .signers([this.userWallet])
         .rpc();
 
-      console.log("✅ Rebase同步成功!");
+      console.log("✅ rebase sync successful!");
       console.log(`Transaction: ${tx}`);
       return tx;
     } catch (error) {
-      console.error("❌ 同步rebase失败:", error);
+      console.error("❌ sync rebase failed:", error);
       throw error;
     }
   }
 
-  // === 查询方法 ===
+  // === query methods ===
 
-  // 查询vault信息
+  // query vault info
   async getVaultInfo(): Promise<any> {
     try {
       const [vaultPDA] = this.getVaultPDA();
       const vaultAccount = await this.program.account.vault.fetch(vaultPDA);
       
-      console.log("📊 Vault信息:");
-      console.log(`总资产: ${vaultAccount.totalAssets.toNumber() / 1e6} USDT`);
-      console.log(`总份额: ${vaultAccount.totalShares.toNumber()}`);
-      console.log(`管理费率: ${vaultAccount.managementFee.toNumber() / 100}%`);
-      console.log(`最小质押金额: ${vaultAccount.minStakeAmount.toNumber() / 1e6} USDT`);
-      console.log(`解质押锁定期: ${vaultAccount.unstakeLockupPeriod.toNumber() / 86400} 天`);
-      console.log(`是否暂停: ${vaultAccount.isPaused}`);
-      console.log(`Shares Base: ${vaultAccount.sharesBase}`);
-      console.log(`Rebase版本: ${vaultAccount.rebaseVersion}`);
+      console.log("📊 vault info:");
+      console.log(`total assets: ${vaultAccount.totalAssets.toNumber() / 1e6} USDT`);
+      console.log(`total shares: ${vaultAccount.totalShares.toNumber()}`);
+      console.log(`management fee: ${vaultAccount.managementFee.toNumber() / 100}%`);
+      console.log(`minimum stake amount: ${vaultAccount.minStakeAmount.toNumber() / 1e6} USDT`);
+      console.log(`unstake lockup period: ${vaultAccount.unstakeLockupPeriod.toNumber() / 86400} days`);
+      console.log(`is paused: ${vaultAccount.isPaused}`);
+      console.log(`shares base: ${vaultAccount.sharesBase}`);
+      console.log(`rebase version: ${vaultAccount.rebaseVersion}`);
       
       return vaultAccount;
     } catch (error) {
-      console.error("❌ 获取vault信息失败:", error);
+      console.error("❌ get vault info failed:", error);
       throw error;
     }
   }
 
-  // 查询用户depositor信息
+  // query user depositor info
   async getUserInfo(): Promise<any> {
     try {
       const [vaultDepositorPDA] = this.getVaultDepositorPDA();
       const depositorAccount = await this.program.account.vaultDepositor.fetch(vaultDepositorPDA);
       
-      console.log("👤 用户信息:");
-      console.log(`持有份额: ${depositorAccount.shares.toNumber()}`);
-      console.log(`总质押金额: ${depositorAccount.totalStaked.toNumber() / 1e6} USDT`);
-      console.log(`总解质押金额: ${depositorAccount.totalUnstaked.toNumber() / 1e6} USDT`);
-      console.log(`上次rebase版本: ${depositorAccount.lastRebaseVersion}`);
+      console.log("👤 user info:");
+      console.log(`shares: ${depositorAccount.shares.toNumber()}`);
+      console.log(`total staked: ${depositorAccount.totalStaked.toNumber() / 1e6} USDT`);
+      console.log(`total unstaked: ${depositorAccount.totalUnstaked.toNumber() / 1e6} USDT`);
+      console.log(`last rebase version: ${depositorAccount.lastRebaseVersion}`);
       
-      // 解质押请求信息
+      // unstake request info
       const unstakeRequest = depositorAccount.unstakeRequest;
       if (unstakeRequest.shares.toNumber() > 0) {
-        console.log("📤 解质押请求:");
-        console.log(`请求份额: ${unstakeRequest.shares.toNumber()}`);
-        console.log(`请求时间: ${new Date(unstakeRequest.requestTime.toNumber() * 1000).toLocaleString()}`);
+        console.log("📤 unstake request:");
+        console.log(`request shares: ${unstakeRequest.shares.toNumber()}`);
+        console.log(`request time: ${new Date(unstakeRequest.requestTime.toNumber() * 1000).toLocaleString()}`);
       } else {
-        console.log("📤 无待处理的解质押请求");
+        console.log("📤 no pending unstake request");
       }
       
       return depositorAccount;
     } catch (error) {
-      console.error("❌ 获取用户信息失败:", error);
+      console.error("❌ get user info failed:", error);
       throw error;
     }
   }
 
-  // 计算用户资产价值
+  // calculate user asset value
   async getUserAssetValue(): Promise<number> {
     try {
       const [vaultPDA] = this.getVaultPDA();
@@ -355,19 +355,19 @@ export class VaultUserOperations {
         userAssetValue = (userShares * totalAssets) / totalShares;
       }
       
-      console.log("💎 用户资产价值:");
-      console.log(`持有份额: ${userShares}`);
-      console.log(`资产价值: ${userAssetValue / 1e6} USDT`);
-      console.log(`当前份额价值: ${totalShares > 0 ? (totalAssets / totalShares).toFixed(6) : 0} USDT/份额`);
+      console.log("💎 user asset value:");
+      console.log(`shares: ${userShares}`);
+      console.log(`asset value: ${userAssetValue / 1e6} USDT`);
+      console.log(`current share value: ${totalShares > 0 ? (totalAssets / totalShares).toFixed(6) : 0} USDT/share`);
       
       return userAssetValue;
     } catch (error) {
-      console.error("❌ 计算用户资产价值失败:", error);
+      console.error("❌ calculate user asset value failed:", error);
       throw error;
     }
   }
 
-  // 查询用户token余额
+  // query user token balance
   async getUserTokenBalance(): Promise<number> {
     try {
       const userTokenAccount = await getAssociatedTokenAddress(
@@ -375,7 +375,7 @@ export class VaultUserOperations {
         this.userWallet.publicKey
       );
       
-      // 检查账户是否存在
+      // check if account exists
       const accountInfo = await this.provider.connection.getAccountInfo(userTokenAccount);
       if (!accountInfo) {
         console.log("💰 用户Token余额:");
@@ -386,18 +386,18 @@ export class VaultUserOperations {
       const tokenAccountInfo = await getAccount(this.provider.connection, userTokenAccount);
       const balance = Number(tokenAccountInfo.amount);
       
-      console.log("💰 用户Token余额:");
-      console.log(`USDT余额: ${balance / 1e6} USDT`);
+      console.log("💰 user token balance:");
+      console.log(`USDT balance: ${balance / 1e6} USDT`);
       
       return balance;
     } catch (error) {
-      console.error("❌ 获取用户token余额失败:", error);
-      console.log("提示: 用户可能还没有创建token账户");
+      console.error("❌ get user token balance failed:", error);
+      console.log("hint: user may not have created a token account");
       return 0;
     }
   }
 
-  // 检查解质押请求状态
+  // check unstake request status
   async checkUnstakeRequestStatus(): Promise<{canUnstake: boolean, remainingTime: number}> {
     try {
       const [vaultPDA] = this.getVaultPDA();
@@ -410,7 +410,7 @@ export class VaultUserOperations {
       const lockupPeriod = vaultAccount.unstakeLockupPeriod.toNumber();
       
       if (unstakeRequest.shares.toNumber() === 0) {
-        console.log("📤 无解质押请求");
+        console.log("📤 no pending unstake request");
         return { canUnstake: false, remainingTime: 0 };
       }
       
@@ -420,41 +420,41 @@ export class VaultUserOperations {
       const remainingTime = Math.max(0, unlockTime - currentTime);
       const canUnstake = remainingTime === 0;
       
-      console.log("⏰ 解质押请求状态:");
-      console.log(`请求时间: ${new Date(requestTime * 1000).toLocaleString()}`);
-      console.log(`解锁时间: ${new Date(unlockTime * 1000).toLocaleString()}`);
-      console.log(`剩余等待时间: ${Math.floor(remainingTime / 3600)}小时${Math.floor((remainingTime % 3600) / 60)}分钟`);
-      console.log(`可以解质押: ${canUnstake ? "是" : "否"}`);
+      console.log("⏰ unstake request status:");
+      console.log(`request time: ${new Date(requestTime * 1000).toLocaleString()}`);
+      console.log(`unlock time: ${new Date(unlockTime * 1000).toLocaleString()}`);
+      console.log(`remaining time: ${Math.floor(remainingTime / 3600)} hours ${Math.floor((remainingTime % 3600) / 60)} minutes`);
+      console.log(`can unstake: ${canUnstake ? "yes" : "no"}`);
       
       return { canUnstake, remainingTime };
     } catch (error) {
-      console.error("❌ 检查解质押请求状态失败:", error);
+      console.error("❌ check unstake request status failed:", error);
       throw error;
     }
   }
 
-  // 获取完整用户报告
+  // get full user report
   async getUserReport(): Promise<void> {
     try {
-      console.log("📋 ===== 用户完整报告 =====");
+      console.log("📋 ===== full user report =====");
       console.log();
       
       await this.getVaultInfo();
       console.log();
       
-      // 检查用户账户是否存在
+      // check if user account exists
       try {
         await this.getUserInfo();
       } catch (error) {
-        console.log("👤 用户信息: 用户账户尚未初始化");
-        console.log("提示: 请先调用 initializeDepositor() 创建用户账户");
+        console.log("👤 user info: user account not initialized");
+        console.log("hint: please call initializeDepositor() to create user account");
       }
       console.log();
       
       try {
         await this.getUserAssetValue();
       } catch (error) {
-        console.log("💎 用户资产价值: 0 USDT (用户账户不存在)");
+        console.log("💎 user asset value: 0 USDT (user account not exists)");
       }
       console.log();
       
@@ -464,61 +464,61 @@ export class VaultUserOperations {
       try {
         await this.checkUnstakeRequestStatus();
       } catch (error) {
-        console.log("⏰ 解质押请求状态: 无解质押请求 (用户账户不存在)");
+        console.log("⏰ unstake request status: no unstake request (user account not exists)");
       }
       console.log();
       
-      console.log("📋 ===== 报告结束 =====");
+      console.log("📋 ===== report end =====");
     } catch (error) {
-      console.error("❌ 生成用户报告失败:", error);
+      console.error("❌ generate user report failed:", error);
       throw error;
     }
   }
 }
 
-// 使用示例
+// example
 export async function example() {
-  // 配置信息
+  // config
   const config: VaultConfig = {
-    programId: new PublicKey("YOUR_PROGRAM_ID"), // 替换为实际的程序ID
+    programId: new PublicKey("YOUR_PROGRAM_ID"), // replace with actual program id
     vaultName: "TestVault",
-    tokenMint: new PublicKey("YOUR_TOKEN_MINT"), // 替换为实际的token mint
+    tokenMint: new PublicKey("YOUR_TOKEN_MINT"), // replace with actual token mint
     rpcUrl: clusterApiUrl("devnet"),
   };
 
-  // 加载用户钱包
+  // load user wallet
   const userWallet = Keypair.fromSecretKey(
     Buffer.from(JSON.parse(fs.readFileSync("path/to/user-wallet.json", "utf8")))
   );
 
-  // 创建操作实例
+  // create operation instance
   const operations = new VaultUserOperations(config, userWallet);
 
   try {
-    // 示例操作流程
-    console.log("开始用户操作示例...");
+    // example operation flow
+    console.log("start user operation example...");
     
-    // 1. 初始化depositor账户
+    // 1. initialize depositor account
     // await operations.initializeDepositor();
     
-    // 2. 查询信息
+    // 2. query info
     await operations.getUserReport();
     
-    // 3. 质押操作
-    // await operations.stake(100 * 1e6); // 质押100 USDT
+    // 3. stake operation
+    // await operations.stake(100 * 1e6); // stake 100 USDT
     
-    // 4. 请求解质押
-    // await operations.requestUnstake(50 * 1e6); // 解质押50 USDT
+    // 4. request unstake
+    // await operations.requestUnstake(50 * 1e6); // request unstake 50 USDT
     
-    // 5. 等待锁定期结束后执行解质押
+    // 5. wait for the lockup period to end and execute unstake
     // await operations.unstake();
     
   } catch (error) {
-    console.error("操作失败:", error);
+    console.error("operation failed:", error);
   }
 }
 
-// 创建配置的辅助函数
+// create config helper function
 export function createConfig(programId: string, vaultName: string, tokenMint: string, rpcUrl?: string): VaultConfig {
   return {
     programId: new PublicKey(programId),
@@ -528,17 +528,17 @@ export function createConfig(programId: string, vaultName: string, tokenMint: st
   };
 }
 
-// 从文件加载钱包的辅助函数
+// load wallet from file helper function
 export function loadWallet(walletPath: string): Keypair {
   try {
     const secretKey = JSON.parse(fs.readFileSync(walletPath, "utf8"));
     return Keypair.fromSecretKey(Buffer.from(secretKey));
   } catch (error) {
-    throw new Error(`无法加载钱包文件 ${walletPath}: ${error}`);
+    throw new Error(`failed to load wallet file ${walletPath}: ${error}`);
   }
 }
 
-// 如果直接运行此文件
+// if directly run this file
 if (require.main === module) {
   example();
 }
