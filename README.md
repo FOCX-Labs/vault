@@ -117,23 +117,6 @@ await program.methods
   .rpc()
 ```
 
-### Claim Rewards
-
-```typescript
-await program.methods
-  .claimRewards()
-  .accounts({
-    vault: vaultPDA,
-    vaultDepositor: vaultDepositorPDA,
-    rewardsTokenAccount: rewardsTokenAccount,
-    userTokenAccount: userTokenAccount,
-    authority: user.publicKey,
-    tokenProgram: TOKEN_PROGRAM_ID,
-  })
-  .signers([user])
-  .rpc()
-```
-
 ## Building and Testing
 
 ```bash
