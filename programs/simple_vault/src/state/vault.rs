@@ -45,10 +45,14 @@ pub struct Vault {
     pub last_fee_update: i64,
     /// Shares base for rebase tracking
     pub shares_base: u32,
+    /// Current rebase version for tracking
+    pub rebase_version: u32,
+    /// Owner shares from management fees
+    pub owner_shares: u64,
     /// Bump seed for PDA
     pub bump: u8,
     /// Reserved for future use
-    pub _reserved: [u64; 6],
+    pub _reserved: [u8; 32],
 }
 
 impl Vault {
@@ -72,8 +76,10 @@ impl Vault {
         8 + // created_at
         8 + // last_fee_update
         4 + // shares_base
+        4 + // rebase_version
+        8 + // owner_shares
         1 + // bump
-        48; // _reserved
+        32; // _reserved
 
     pub fn initialize(
         &mut self,
@@ -85,7 +91,7 @@ impl Vault {
         rewards_token_account: Pubkey,
         params: InitializeVaultParams,
         bump: u8,
-    ) -> VaultResult {
+    ) -> VaultResult<()> {
         self.name = name;
         self.pubkey = pubkey;
         self.owner = owner;
@@ -107,6 +113,8 @@ impl Vault {
         self.created_at = get_current_timestamp();
         self.last_fee_update = get_current_timestamp();
         self.shares_base = 0;
+        self.rebase_version = 0;
+        self.owner_shares = 0;
         self.bump = bump;
 
         // Validate configuration
@@ -171,7 +179,7 @@ impl Vault {
         Ok(assets)
     }
 
-    pub fn add_rewards(&mut self, amount: u64) -> VaultResult {
+    pub fn add_rewards(&mut self, amount: u64) -> VaultResult<()> {
         if self.total_shares == 0 {
             return Ok(());
         }
@@ -192,7 +200,7 @@ impl Vault {
         Ok(())
     }
 
-    pub fn update_config(&mut self, params: UpdateVaultConfigParams) -> VaultResult {
+    pub fn update_config(&mut self, params: UpdateVaultConfigParams) -> VaultResult<()> {
         if let Some(unstake_lockup_period) = params.unstake_lockup_period {
             if unstake_lockup_period < MIN_UNSTAKE_LOCKUP_DAYS * ONE_DAY
                 || unstake_lockup_period > MAX_UNSTAKE_LOCKUP_DAYS * ONE_DAY
@@ -224,8 +232,8 @@ impl Vault {
         Ok(())
     }
 
-    pub fn get_signer_seeds(&self) -> Vec<&[u8]> {
-        vec![b"vault", self.name.as_ref(), &[self.bump]]
+    pub fn get_signer_seeds(&self) -> [&[u8]; 3] {
+        [b"vault", self.name.as_ref(), std::slice::from_ref(&self.bump)]
     }
 
     /// Apply rebase mechanism when shares become too large relative to assets
@@ -239,12 +247,11 @@ impl Vault {
 
         if expo_diff > 0 {
             // Apply rebase by dividing shares
-            self.total_shares = (self
-                .total_shares
-                .safe_cast::<u128>()?
+            self.total_shares = (SafeCast::<u128>::safe_cast(&self.total_shares)?
                 .safe_div(rebase_divisor)?)
             .safe_cast()?;
             self.shares_base = self.shares_base.safe_add(expo_diff)?;
+            self.rebase_version = self.rebase_version.safe_add(1)?;
 
             msg!(
                 "Vault rebase applied: expo_diff={}, divisor={}",
@@ -298,9 +305,9 @@ impl Vault {
             return Ok(0);
         }
 
-        let base_value = (self.total_assets.safe_cast::<u128>()?)
-            .safe_mul(PRECISION.safe_cast::<u128>()?)?
-            .safe_div(self.total_shares.safe_cast::<u128>()?)?;
+        let base_value = (SafeCast::<u128>::safe_cast(&self.total_assets)?)
+            .safe_mul(SafeCast::<u128>::safe_cast(&PRECISION)?)?
+            .safe_div(SafeCast::<u128>::safe_cast(&self.total_shares)?)?;
 
         // Adjust for rebase factor
         let rebase_multiplier = 10u128.pow(self.shares_base);

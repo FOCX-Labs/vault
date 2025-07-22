@@ -93,18 +93,6 @@ impl VaultDepositor {
         Ok(())
     }
 
-    pub fn claim_rewards(&mut self, _rewards_per_share: u128) -> VaultResult<u64> {
-        // In the new compounding model, there are no separate rewards to claim
-        // All rewards are automatically compounded into the vault's total_assets
-        // Users benefit from increased share value when they unstake
-        
-        // For backward compatibility, we return 0 rewards
-        // Users should unstake to realize their compounded gains
-        self.last_rewards_claim = get_current_timestamp();
-        
-        Ok(0)
-    }
-
     pub fn calculate_pending_rewards(&self, _rewards_per_share: u128) -> VaultResult<u64> {
         // In the new compounding model, there are no separate pending rewards
         // All rewards are automatically compounded into share value

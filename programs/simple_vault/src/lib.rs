@@ -68,12 +68,6 @@ pub mod simple_vault {
         instructions::add_rewards(ctx, amount)
     }
 
-    /// Claim rewards for a user
-    pub fn claim_rewards(
-        ctx: Context<ClaimRewards>,
-    ) -> Result<()> {
-        instructions::claim_rewards(ctx)
-    }
 
     /// Update vault configuration (only owner)
     pub fn update_vault_config(
