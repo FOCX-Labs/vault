@@ -1,6 +1,6 @@
-# Simple Vault
+# Insurance Fund Vault
 
-A simplified insurance fund vault implementation based on Drift Protocol's architecture.
+An Insurance Fund Vault that users can stake stable coins to earn platform fees and help secure the marketplace.
 
 ## Features
 
@@ -18,13 +18,6 @@ A simplified insurance fund vault implementation based on Drift Protocol's archi
 2. **VaultDepositor**: Individual user account tracking shares and rewards
 3. **UnstakeRequest**: Handles unstaking with lockup period
 4. **Rewards System**: Calculates and distributes rewards proportionally
-
-### Key Differences from Drift
-
-- **Simplified**: Removed drift protocol CPI calls
-- **Self-contained**: All funds stored in vault token accounts
-- **Reward Source**: Dedicated account for external reward funding
-- **14-day Lockup**: Default unstaking period (configurable)
 
 ## Usage
 
@@ -197,4 +190,4 @@ After unstaking, funds are not automatically transferred to the user's wallet. T
 
 ## License
 
-MIT
+TBD
