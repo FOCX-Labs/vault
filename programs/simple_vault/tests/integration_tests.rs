@@ -440,4 +440,50 @@ mod integration_tests {
         
         println!("\n✅ Zero shares rewards test passed!");
     }
+
+    #[test]
+    fn test_platform_reward_split() {
+        // 测试平台奖励分成功能
+        println!("=== Testing Platform Reward Split ===");
+        
+        use simple_vault::math::{SafeMath, SafeCast};
+        
+        // 测试不同数量的分成计算
+        let test_amounts = [100u64, 101u64, 999u64, 1000u64, 1001u64];
+        
+        const PLATFORM_SHARE_BPS: u64 = 5000; // 50%
+        const BASIS_POINTS: u64 = 10000;
+        
+        for amount in test_amounts {
+            // 使用相同的分成逻辑
+            let platform_share = ((amount as u128)
+                .safe_mul(PLATFORM_SHARE_BPS as u128).unwrap()
+                .safe_div(BASIS_POINTS as u128).unwrap())
+                .safe_cast().unwrap();
+            
+            let vault_share = amount.safe_sub(platform_share).unwrap();
+            
+            println!("\nAmount: {}", amount);
+            println!("  Platform share: {} ({}%)", platform_share, (platform_share * 100) / amount);
+            println!("  Vault share: {} ({}%)", vault_share, (vault_share * 100) / amount);
+            println!("  Total: {} (should equal original)", platform_share + vault_share);
+            
+            // 验证分成正确性
+            assert_eq!(platform_share + vault_share, amount);
+            assert!(platform_share > 0 || amount == 0);
+            assert!(vault_share > 0 || amount == 0);
+            
+            // 验证分成比例接近50%（允许舍入误差）
+            if amount >= 2 {
+                let platform_percentage = (platform_share * 100) / amount;
+                let vault_percentage = (vault_share * 100) / amount;
+                
+                // 由于整数除法，允许一定误差
+                assert!(platform_percentage >= 49 && platform_percentage <= 51);
+                assert!(vault_percentage >= 49 && vault_percentage <= 51);
+            }
+        }
+        
+        println!("\n✅ Platform reward split test passed!");
+    }
 }
