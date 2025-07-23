@@ -22,9 +22,6 @@ pub struct AddRewards<'info> {
     )]
     pub reward_source_account: Account<'info, TokenAccount>,
     
-    #[account(
-        constraint = reward_source_authority.key() == vault.owner @ VaultError::Unauthorized
-    )]
     pub reward_source_authority: Signer<'info>,
     
     pub token_program: Program<'info, Token>,
