@@ -30,15 +30,6 @@ pub struct InitializeVault<'info> {
     )]
     pub vault_token_account: Account<'info, TokenAccount>,
     
-    #[account(
-        init,
-        payer = owner,
-        token::mint = token_mint,
-        token::authority = vault,
-        seeds = [b"rewards_token_account", vault.key().as_ref()],
-        bump
-    )]
-    pub rewards_token_account: Account<'info, TokenAccount>,
     
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -58,7 +49,6 @@ pub fn initialize_vault(
         ctx.accounts.owner.key(),
         ctx.accounts.token_mint.key(),
         ctx.accounts.vault_token_account.key(),
-        ctx.accounts.rewards_token_account.key(),
         crate::state::vault::InitializeVaultParams {
             unstake_lockup_period: params.unstake_lockup_period,
             management_fee: params.management_fee,

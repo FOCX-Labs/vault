@@ -15,10 +15,8 @@ pub struct Vault {
     pub owner: Pubkey,
     /// The token mint for staking
     pub token_mint: Pubkey,
-    /// The vault token account (insurance fund)
+    /// The vault token account (main asset pool)
     pub vault_token_account: Pubkey,
-    /// The rewards token account
-    pub rewards_token_account: Pubkey,
     /// Total supply of shares
     pub total_shares: u64,
     /// Total assets in the vault
@@ -62,7 +60,6 @@ impl Vault {
         32 + // owner
         32 + // token_mint
         32 + // vault_token_account
-        32 + // rewards_token_account
         8 + // total_shares
         8 + // total_assets
         8 + // total_rewards
@@ -88,7 +85,6 @@ impl Vault {
         owner: Pubkey,
         token_mint: Pubkey,
         vault_token_account: Pubkey,
-        rewards_token_account: Pubkey,
         params: InitializeVaultParams,
         bump: u8,
     ) -> VaultResult<()> {
@@ -97,7 +93,6 @@ impl Vault {
         self.owner = owner;
         self.token_mint = token_mint;
         self.vault_token_account = vault_token_account;
-        self.rewards_token_account = rewards_token_account;
         self.total_shares = 0;
         self.total_assets = 0;
         self.total_rewards = 0;
@@ -180,20 +175,22 @@ impl Vault {
     }
 
     pub fn add_rewards(&mut self, amount: u64) -> VaultResult<()> {
-        if self.total_shares == 0 {
-            return Ok(());
-        }
-
         // Apply rebase before updating rewards
         self.apply_rebase()?;
 
-        self.rewards_per_share = vault_math::calculate_rewards_per_share(
-            amount,
-            self.total_shares,
-            self.rewards_per_share,
-        )?;
-
+        // Always add to total_assets for proper accounting
+        self.total_assets = self.total_assets.safe_add(amount)?;
         self.total_rewards = self.total_rewards.safe_add(amount)?;
+
+        // Only update rewards_per_share if there are shares
+        if self.total_shares > 0 {
+            // Update rewards statistics (keep for tracking purposes)
+            self.rewards_per_share = vault_math::calculate_rewards_per_share(
+                amount,
+                self.total_shares,
+                self.rewards_per_share,
+            )?;
+        }
 
         self.last_rewards_update = get_current_timestamp();
 
@@ -287,6 +284,7 @@ impl Vault {
                 vault_math::calculate_shares(fee_amount, self.total_shares, self.total_assets)?;
 
             self.total_shares = self.total_shares.safe_add(fee_shares)?;
+            self.owner_shares = self.owner_shares.safe_add(fee_shares)?;
 
             msg!(
                 "Management fee applied: {} tokens, {} shares",

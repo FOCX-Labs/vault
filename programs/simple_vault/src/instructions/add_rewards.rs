@@ -10,11 +10,11 @@ pub struct AddRewards<'info> {
     
     #[account(
         mut,
-        seeds = [b"rewards_token_account", vault.key().as_ref()],
+        seeds = [b"vault_token_account", vault.key().as_ref()],
         bump,
-        constraint = rewards_token_account.key() == vault.rewards_token_account @ VaultError::InvalidTokenAccount,
+        constraint = vault_token_account.key() == vault.vault_token_account @ VaultError::InvalidTokenAccount,
     )]
-    pub rewards_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: Account<'info, TokenAccount>,
     
     #[account(
         mut,
@@ -37,10 +37,10 @@ pub fn add_rewards(
         return Err(VaultError::InvalidAmount.into());
     }
     
-    // Transfer rewards to the rewards token account FIRST
+    // Transfer rewards to the vault token account FIRST
     let cpi_accounts = Transfer {
         from: ctx.accounts.reward_source_account.to_account_info(),
-        to: ctx.accounts.rewards_token_account.to_account_info(),
+        to: ctx.accounts.vault_token_account.to_account_info(),
         authority: ctx.accounts.reward_source_authority.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
