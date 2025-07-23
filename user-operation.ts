@@ -292,14 +292,19 @@ export class VaultUserOperations {
       const vaultAccount = await this.program.account.vault.fetch(vaultPDA);
       
       console.log("📊 vault info:");
+      console.log(`owner: ${vaultAccount.owner.toString()}`);
+      console.log(`platform account: ${vaultAccount.platformAccount.toString()}`);
       console.log(`total assets: ${vaultAccount.totalAssets.toNumber() / 1e6} USDT`);
       console.log(`total shares: ${vaultAccount.totalShares.toNumber()}`);
+      console.log(`total rewards: ${vaultAccount.totalRewards.toNumber() / 1e6} USDT`);
+      console.log(`owner shares: ${vaultAccount.ownerShares.toNumber()}`);
       console.log(`management fee: ${vaultAccount.managementFee.toNumber() / 100}%`);
       console.log(`minimum stake amount: ${vaultAccount.minStakeAmount.toNumber() / 1e6} USDT`);
-      console.log(`unstake lockup period: ${vaultAccount.unstakeLockupPeriod.toNumber() / 86400} days`);
+      console.log(`unstake lockup period: ${vaultAccount.unstakeLockupPeriod.toNumber() / 3600} hours`);
       console.log(`is paused: ${vaultAccount.isPaused}`);
       console.log(`shares base: ${vaultAccount.sharesBase}`);
       console.log(`rebase version: ${vaultAccount.rebaseVersion}`);
+      console.log(`created at: ${new Date(vaultAccount.createdAt.toNumber() * 1000).toLocaleString()}`);
       
       return vaultAccount;
     } catch (error) {
@@ -433,6 +438,26 @@ export class VaultUserOperations {
     }
   }
 
+  // get reward distribution info
+  async getRewardDistributionInfo(): Promise<void> {
+    try {
+      const [vaultPDA] = this.getVaultPDA();
+      const vaultAccount = await this.program.account.vault.fetch(vaultPDA);
+      
+      console.log("💰 reward distribution info:");
+      console.log("  - platform account receives 50% of all rewards");
+      console.log("  - vault users receive 50% of all rewards (auto-compounded)");
+      console.log(`  - platform account: ${vaultAccount.platformAccount.toString()}`);
+      console.log(`  - total rewards distributed: ${vaultAccount.totalRewards.toNumber() / 1e6} USDT`);
+      console.log(`  - rewards per share: ${vaultAccount.rewardsPerShare.toString()}`);
+      console.log(`  - last reward update: ${new Date(vaultAccount.lastRewardsUpdate.toNumber() * 1000).toLocaleString()}`);
+      
+    } catch (error) {
+      console.error("❌ get reward distribution info failed:", error);
+      throw error;
+    }
+  }
+
   // get full user report
   async getUserReport(): Promise<void> {
     try {
@@ -466,6 +491,9 @@ export class VaultUserOperations {
       } catch (error) {
         console.log("⏰ unstake request status: no unstake request (user account not exists)");
       }
+      console.log();
+      
+      await this.getRewardDistributionInfo();
       console.log();
       
       console.log("📋 ===== report end =====");

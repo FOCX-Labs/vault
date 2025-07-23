@@ -9,7 +9,6 @@ import {
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import { 
-  SystemProgram, 
   Keypair,
   PublicKey,
   Connection,
@@ -25,7 +24,8 @@ interface RewardConfig {
   tokenMint: PublicKey;
   rpcUrl: string;
   vaultPDA: PublicKey;
-  rewardsTokenAccount: PublicKey;
+  vaultTokenAccount: PublicKey;
+  platformTokenAccount: PublicKey;
   rewardSourceAccount: PublicKey;
 }
 
@@ -67,17 +67,18 @@ class RewardInjector {
     this.program = new Program(idl, this.provider) as Program<SimpleVault>;
   }
 
-  // 注入奖励
-  // - vault_token_account: 存储用户质押的本金
-  // - rewards_token_account: 存储待分配的奖励
+  // 注入奖励 - 支持50-50分成
+  // - vault_token_account: 接收用户50%的奖励
+  // - platform_token_account: 接收平台50%的奖励
   async injectRewards(amountUsdt: number): Promise<string> {
     try {
       const amountRaw = Math.floor(amountUsdt * 1e6); // 转换为最小单位
       
-      console.log("🎁 开始注入奖励...");
-      console.log(`奖励金额: ${amountUsdt} USDT (${amountRaw} 最小单位)`);
+      console.log("🎁 开始注入奖励 (50-50分成)...");
+      console.log(`总奖励金额: ${amountUsdt} USDT (${amountRaw} 最小单位)`);
       console.log(`Vault PDA: ${this.config.vaultPDA.toString()}`);
-      console.log(`Rewards Token Account: ${this.config.rewardsTokenAccount.toString()}`);
+      console.log(`Vault Token Account: ${this.config.vaultTokenAccount.toString()}`);
+      console.log(`Platform Token Account: ${this.config.platformTokenAccount.toString()}`);
       console.log(`Reward Source Account: ${this.config.rewardSourceAccount.toString()}`);
       
       // 检查奖励来源账户余额
@@ -88,13 +89,22 @@ class RewardInjector {
       
       console.log(`✅ 奖励来源账户余额充足: ${sourceBalance / 1e6} USDT`);
       
-      // 执行奖励注入
+      // 计算分成 (50-50)
+      const platformShare = Math.floor(amountRaw * 0.5);
+      const vaultShare = amountRaw - platformShare;
+      
+      console.log("💰 奖励分成详情:");
+      console.log(`  - 平台账户将获得: ${platformShare / 1e6} USDT (50%)`);
+      console.log(`  - Vault用户将获得: ${vaultShare / 1e6} USDT (50%)`);
+      
+      // 执行奖励注入 (新的add_rewards支持50-50分成)
       const tx = await this.program.methods
         .addRewards(new anchor.BN(amountRaw))
         .accounts({
           vault: this.config.vaultPDA,
-          rewardsTokenAccount: this.config.rewardsTokenAccount,
+          vaultTokenAccount: this.config.vaultTokenAccount,
           rewardSourceAccount: this.config.rewardSourceAccount,
+          platformTokenAccount: this.config.platformTokenAccount,
           rewardSourceAuthority: this.adminWallet.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
         } as any)
@@ -142,9 +152,20 @@ class RewardInjector {
       // 检查vault token account余额
       const vaultTokenAccount = await getAccount(
         this.provider.connection, 
-        new PublicKey(contract_info.vault_token_account)
+        this.config.vaultTokenAccount
       );
       console.log(`Vault Token Account余额: ${Number(vaultTokenAccount.amount) / 1e6} USDT`);
+      
+      // 检查平台token account余额
+      try {
+        const platformTokenAccount = await getAccount(
+          this.provider.connection, 
+          this.config.platformTokenAccount
+        );
+        console.log(`Platform Token Account余额: ${Number(platformTokenAccount.amount) / 1e6} USDT`);
+      } catch (error) {
+        console.log("Platform Token Account: 账户不存在或尚未创建");
+      }
       
     } catch (error) {
       console.error("❌ 获取vault状态失败:", error);
@@ -193,10 +214,16 @@ class RewardInjector {
     // 检查余额
     const sourceBalance = await this.checkSourceBalance();
     
-    console.log("\n📋 注入后预期状态:");
-    console.log(`奖励来源账户余额将变为: ${(sourceBalance - amountUsdt * 1e6) / 1e6} USDT`);
-    console.log(`所有质押用户将获得奖励分配`);
-    console.log(`Vault总奖励将增加: ${amountUsdt} USDT`);
+    // 计算50-50分成预期
+    const amountRaw = Math.floor(amountUsdt * 1e6);
+    const platformShare = Math.floor(amountRaw * 0.5);
+    const vaultShare = amountRaw - platformShare;
+    
+    console.log("\n📋 注入后预期状态 (50-50分成):");
+    console.log(`奖励来源账户余额将变为: ${(sourceBalance - amountRaw) / 1e6} USDT`);
+    console.log(`平台账户将获得: ${platformShare / 1e6} USDT (50%)`);
+    console.log(`Vault用户将获得: ${vaultShare / 1e6} USDT (50%)`);
+    console.log(`Vault总奖励将增加: ${vaultShare / 1e6} USDT (仅用户部分)`);
     
     console.log("\n✅ 模拟完成，使用 --execute 参数实际执行");
   }
@@ -210,8 +237,9 @@ function loadRewardConfig(): RewardConfig {
     tokenMint: new PublicKey(contract_info.usdt_address),
     rpcUrl: "https://api.devnet.solana.com",
     vaultPDA: new PublicKey(contract_info.vault_pda),
-    rewardsTokenAccount: new PublicKey("2Z7Dy6EN7TrSWyXVY6miCUQ98geBRS3gTgq64471j98V"),
-    rewardSourceAccount: new PublicKey("4TDrSXzpgLBWfpJnndNTqv6PtTuH44rku5vM9tj7dcua"),
+    vaultTokenAccount: new PublicKey(contract_info.vault_token_account),
+    platformTokenAccount: new PublicKey("HKSDubsoppVK9tyPBonLZbfu4z16Pb4qQimugnFgARdq"), // 平台账户的ATA
+    rewardSourceAccount: new PublicKey("HaX97WCSkm5JnXkxTeyuoPKG96Q6UiqgKBmUK1R9mevi"), // 管理员的ATA作为奖励源
   };
 }
 
@@ -233,7 +261,7 @@ async function main() {
   
   if (args.length === 0) {
     console.log(`
-🎁 奖励注入工具
+🎁 奖励注入工具 (支持50-50分成)
 
 使用方法:
   node reward-injection.ts <amount> [options]
@@ -251,10 +279,16 @@ async function main() {
   node reward-injection.ts --batch "10,20,30"     # 批量注入10,20,30 USDT
   node reward-injection.ts --batch "50,100" --execute  # 批量实际注入
 
+功能说明:
+  - 奖励将按50-50比例分成: 50%给平台账户，50%给vault用户
+  - 平台部分直接转入平台账户的Token Account
+  - 用户部分转入vault并自动分配给所有质押用户
+
 注意: 
   - 默认使用模拟模式，添加 --execute 参数才会实际执行
   - 需要管理员权限 (使用 ~/.config/solana/id.json 钱包)
   - 确保奖励来源账户有足够的USDT余额
+  - 确保平台账户的Token Account已创建
 `);
     return;
   }

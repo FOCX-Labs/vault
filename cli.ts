@@ -30,6 +30,7 @@ Available commands:
   user-info                View user depositor information
   asset-value              View user asset value
   unstake-status           View unstake request status
+  reward-info              View reward distribution information
   report                   Generate complete user report
 
 Configuration options:
@@ -154,6 +155,11 @@ async function main() {
       case "unstake-status":
         console.log("⏰ Checking unstake request status...");
         await operations.checkUnstakeRequestStatus();
+        break;
+
+      case "reward-info":
+        console.log("💰 Getting reward distribution information...");
+        await operations.getRewardDistributionInfo();
         break;
 
       case "report":
