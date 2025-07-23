@@ -47,6 +47,7 @@ pub fn initialize_vault(
         params.name,
         vault_key,
         ctx.accounts.owner.key(),
+        params.platform_account,
         ctx.accounts.token_mint.key(),
         ctx.accounts.vault_token_account.key(),
         crate::state::vault::InitializeVaultParams {
@@ -66,6 +67,7 @@ pub fn initialize_vault(
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct InitializeVaultParams {
     pub name: [u8; 32],
+    pub platform_account: Pubkey,
     pub unstake_lockup_period: Option<i64>,
     pub management_fee: Option<u64>,
     pub min_stake_amount: Option<u64>,

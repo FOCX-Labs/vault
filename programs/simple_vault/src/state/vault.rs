@@ -13,6 +13,8 @@ pub struct Vault {
     pub pubkey: Pubkey,
     /// The owner/admin of the vault
     pub owner: Pubkey,
+    /// The platform account for receiving 50% of rewards
+    pub platform_account: Pubkey,
     /// The token mint for staking
     pub token_mint: Pubkey,
     /// The vault token account (main asset pool)
@@ -58,6 +60,7 @@ impl Vault {
         32 + // name
         32 + // pubkey
         32 + // owner
+        32 + // platform_account
         32 + // token_mint
         32 + // vault_token_account
         8 + // total_shares
@@ -83,6 +86,7 @@ impl Vault {
         name: [u8; 32],
         pubkey: Pubkey,
         owner: Pubkey,
+        platform_account: Pubkey,
         token_mint: Pubkey,
         vault_token_account: Pubkey,
         params: InitializeVaultParams,
@@ -91,6 +95,7 @@ impl Vault {
         self.name = name;
         self.pubkey = pubkey;
         self.owner = owner;
+        self.platform_account = platform_account;
         self.token_mint = token_mint;
         self.vault_token_account = vault_token_account;
         self.total_shares = 0;
@@ -226,6 +231,10 @@ impl Vault {
             self.is_paused = is_paused;
         }
 
+        if let Some(platform_account) = params.platform_account {
+            self.platform_account = platform_account;
+        }
+
         Ok(())
     }
 
@@ -328,4 +337,5 @@ pub struct UpdateVaultConfigParams {
     pub min_stake_amount: Option<u64>,
     pub max_total_assets: Option<u64>,
     pub is_paused: Option<bool>,
+    pub platform_account: Option<Pubkey>,
 }

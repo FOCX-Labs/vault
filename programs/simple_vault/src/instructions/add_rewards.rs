@@ -22,6 +22,13 @@ pub struct AddRewards<'info> {
     )]
     pub reward_source_account: Account<'info, TokenAccount>,
     
+    #[account(
+        mut,
+        constraint = platform_token_account.mint == vault.token_mint @ VaultError::InvalidTokenMint,
+        constraint = platform_token_account.owner == vault.platform_account @ VaultError::InvalidTokenAccount,
+    )]
+    pub platform_token_account: Account<'info, TokenAccount>,
+    
     pub reward_source_authority: Signer<'info>,
     
     pub token_program: Program<'info, Token>,
@@ -31,27 +38,58 @@ pub fn add_rewards(
     ctx: Context<AddRewards>,
     amount: u64,
 ) -> Result<()> {
+    use crate::math::{SafeMath, SafeCast};
+    
     let vault = &mut ctx.accounts.vault;
     
     if amount == 0 {
         return Err(VaultError::InvalidAmount.into());
     }
     
-    // Transfer rewards to the vault token account FIRST
-    let cpi_accounts = Transfer {
+    // Calculate 50-50 split using basis points for precision
+    const PLATFORM_SHARE_BPS: u64 = 5000; // 50% = 5000 basis points
+    const BASIS_POINTS: u64 = 10000;
+    
+    let platform_share = ((amount as u128)
+        .safe_mul(PLATFORM_SHARE_BPS as u128)?
+        .safe_div(BASIS_POINTS as u128)?)
+        .safe_cast()?;
+    
+    let vault_share = amount.safe_sub(platform_share)?;
+    
+    // Transfer vault share to vault token account
+    let vault_cpi_accounts = Transfer {
         from: ctx.accounts.reward_source_account.to_account_info(),
         to: ctx.accounts.vault_token_account.to_account_info(),
         authority: ctx.accounts.reward_source_authority.to_account_info(),
     };
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    let vault_cpi_program = ctx.accounts.token_program.to_account_info();
+    let vault_cpi_ctx = CpiContext::new(vault_cpi_program, vault_cpi_accounts);
     
-    token::transfer(cpi_ctx, amount)?;
+    token::transfer(vault_cpi_ctx, vault_share)?;
     
-    // Update vault rewards AFTER successful token transfer
-    vault.add_rewards(amount)?;
+    // Transfer platform share to platform token account
+    let platform_cpi_accounts = Transfer {
+        from: ctx.accounts.reward_source_account.to_account_info(),
+        to: ctx.accounts.platform_token_account.to_account_info(),
+        authority: ctx.accounts.reward_source_authority.to_account_info(),
+    };
+    let platform_cpi_program = ctx.accounts.token_program.to_account_info();
+    let platform_cpi_ctx = CpiContext::new(platform_cpi_program, platform_cpi_accounts);
     
-    msg!("Added {} rewards to vault", amount);
+    token::transfer(platform_cpi_ctx, platform_share)?;
+    
+    // Update vault rewards with only the vault's share
+    vault.add_rewards(vault_share)?;
+    
+    msg!(
+        "Added {} total rewards: {} to vault users ({}%), {} to platform ({}%)", 
+        amount, 
+        vault_share,
+        (vault_share * 100) / amount,
+        platform_share,
+        (platform_share * 100) / amount
+    );
     
     Ok(())
 }
