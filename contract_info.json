@@ -1,11 +1,12 @@
 {
     "programId": "EHiKn3J5wywNG2rHV2Qt74AfNqtJajhPerkVzYXudEwn",
-    "usdt_address": "78Mxm7HWWY8qXSTPWpzcRT9vohtVabfzLtoCdFv1qn3c",
+    "usdt_address": "DXDVt289yXEcqXDd9Ub3HqSBTWwrmNB8DzQEagv9Svtu",
     "admin_address": "3FJ4EYCddqi4HpGnvXNPuFFwVpoZYahoC2W6y4aY6fxv",
-    "vault_name": "FOCX_Vault",
-    "vault_pda": "5FL2Hn9YCy2x7gubfgyUhXB65riDBUmCRJLJETMND3fa",
-    "vault_token_account": "4TCgwgrJDZcP7UK5qfCvNvhVtCMiTaodZB1qgsoJPHjP",
-    "unstake_lockup_period": "86400s",
-    "management_fee": "0",
-    "min_stake_amount": "100USDT"
+    "platform_account": "9tQwmpAqY8p4ERKPXZEnQc2MAd1juwsFAxv1NF9pNojq",
+    "vault_name": "Insurance Fund Vault",
+    "vault_pda": "8hDcWvDXvZHcqneLAPBQMjCY9Bpwatdyv16fx7Pf3fys",
+    "vault_token_account": "GSzHB4ZRdA26yZRXRnSvTx41YJFQnBivifaNn6XKHQy1",
+    "unstake_lockup_period": 24,
+    "management_fee": 0,
+    "min_stake_amount": 1
 }
