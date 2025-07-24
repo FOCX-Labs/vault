@@ -1,5 +1,7 @@
 node_modules
 .anchor
-target
+target/*
+!target/idl
+!target/types
 description
 package-lock.json
