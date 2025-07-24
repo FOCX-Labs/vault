@@ -62,7 +62,7 @@ async function loadConfig() {
   const config = createConfig(
     contract_info.programId,
     contract_info.vault_name || "FOCX_Vault",
-    contract_info.usdt_address,
+    contract_info.usdc_address,
     getOption("--rpc", "https://api.devnet.solana.com") || "https://api.devnet.solana.com"
   );
 

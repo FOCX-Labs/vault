@@ -234,7 +234,7 @@ function loadRewardConfig(): RewardConfig {
   return {
     programId: new PublicKey(contract_info.programId),
     vaultName: contract_info.vault_name || "FOCX_Vault",
-    tokenMint: new PublicKey(contract_info.usdt_address),
+    tokenMint: new PublicKey(contract_info.usdc_address),
     rpcUrl: "https://api.devnet.solana.com",
     vaultPDA: new PublicKey(contract_info.vault_pda),
     vaultTokenAccount: new PublicKey(contract_info.vault_token_account),
