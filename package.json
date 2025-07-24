@@ -9,9 +9,8 @@
     "test": "anchor test --skip-local-validator",
     "deploy": "anchor deploy",
     "clean": "anchor clean",
-    "cli": "ts-node cli.ts",
-    "reward": "ts-node reward-injection.ts",
-    "update-vault-params": "ts-node update-vault-params.ts"
+    "cli": "ts-node client/cli.ts",
+    "admin": "ts-node client/update-vault-params.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",

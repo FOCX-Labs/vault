@@ -2,7 +2,7 @@
 
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { SimpleVault } from "./target/types/simple_vault";
+import { SimpleVault } from "../target/types/simple_vault";
 import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 import * as fs from "fs";
 import * as os from "os";
@@ -35,11 +35,11 @@ export class VaultAdminOperations {
     
     let idl;
     try {
-      idl = JSON.parse(fs.readFileSync("./target/idl/simple_vault.json", "utf8"));
+      idl = JSON.parse(fs.readFileSync("../target/idl/simple_vault.json", "utf8"));
     } catch (error) {
       console.warn("Failed to load local IDL file, trying relative path...");
       try {
-        idl = require("./target/idl/simple_vault.json");
+        idl = require("../target/idl/simple_vault.json");
       } catch (e) {
         throw new Error("Failed to load IDL file. Please ensure the contract is compiled and the IDL file is generated.");
       }
