@@ -10,7 +10,8 @@
     "deploy": "anchor deploy",
     "clean": "anchor clean",
     "cli": "ts-node cli.ts",
-    "reward": "ts-node reward-injection.ts"
+    "reward": "ts-node reward-injection.ts",
+    "update-vault-params": "ts-node update-vault-params.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",
