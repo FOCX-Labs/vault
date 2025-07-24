@@ -1,5 +1,6 @@
 /// Time constants
-pub const ONE_HOUR: i64 = 60 * 60;
+pub const ONE_MINUTE: i64 = 60;
+pub const ONE_HOUR: i64 = ONE_MINUTE * 60;
 pub const ONE_DAY: i64 = ONE_HOUR * 24;
 pub const ONE_WEEK: i64 = ONE_DAY * 7;
 pub const FOURTEEN_DAYS: i64 = ONE_DAY * 14;
@@ -10,7 +11,7 @@ pub const SHARE_PRECISION: u128 = 1_000_000_000_000_000_000; // 1e18
 
 /// Vault configuration limits
 pub const MAX_UNSTAKE_LOCKUP_DAYS: i64 = 90;
-pub const MIN_UNSTAKE_LOCKUP_DAYS: i64 = 1;
+pub const MIN_UNSTAKE_LOCKUP_MINUTES: i64 = 10; // Changed from 1 day to 10 minutes
 pub const DEFAULT_UNSTAKE_LOCKUP: i64 = FOURTEEN_DAYS;
 
 /// Fee constants (in basis points)

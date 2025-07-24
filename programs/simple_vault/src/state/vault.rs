@@ -118,7 +118,7 @@ impl Vault {
         self.bump = bump;
 
         // Validate configuration
-        if self.unstake_lockup_period < MIN_UNSTAKE_LOCKUP_DAYS * ONE_DAY {
+        if self.unstake_lockup_period < MIN_UNSTAKE_LOCKUP_MINUTES * ONE_MINUTE {
             return Err(VaultError::InvalidVaultConfig);
         }
         if self.unstake_lockup_period > MAX_UNSTAKE_LOCKUP_DAYS * ONE_DAY {
@@ -204,7 +204,7 @@ impl Vault {
 
     pub fn update_config(&mut self, params: UpdateVaultConfigParams) -> VaultResult<()> {
         if let Some(unstake_lockup_period) = params.unstake_lockup_period {
-            if unstake_lockup_period < MIN_UNSTAKE_LOCKUP_DAYS * ONE_DAY
+            if unstake_lockup_period < MIN_UNSTAKE_LOCKUP_MINUTES * ONE_MINUTE
                 || unstake_lockup_period > MAX_UNSTAKE_LOCKUP_DAYS * ONE_DAY
             {
                 return Err(VaultError::InvalidVaultConfig);
