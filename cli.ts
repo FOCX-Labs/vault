@@ -25,9 +25,9 @@ Available commands:
   unstake                  Execute unstake (requires lockup period to end)
   cancel-unstake           Cancel unstake request
   sync-rebase              Sync rebase
-  info                     View vault information
+  vault-info                     View vault information
   balance                  View user token balance
-  user-info                View user depositor information
+  depositor-info                View user depositor information
   asset-value              View user asset value
   unstake-status           View unstake request status
   reward-info              View reward distribution information
@@ -42,7 +42,7 @@ Examples:
   node cli.ts stake 100                     # Stake 100 USDT
   node cli.ts request-unstake 50            # Request unstake 50 USDT
   node cli.ts report                        # View complete report
-  node cli.ts info                          # View vault information
+  node cli.ts vault-info                          # View vault information
   node cli.ts balance                       # View USDT balance
   node cli.ts --wallet ./my-wallet.json stake 200  # Use specified wallet to stake 200 USDT
 `;
