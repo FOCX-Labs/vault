@@ -30,3 +30,18 @@
     ```shell
     yarn cli unstake
     ```
+
+6. **View the withdrawable assets of the current account.**
+   ```shell
+   yarn cli asset-value
+   ```
+
+7. **View the vault info**
+   ```shell
+   yarn cli vault-info
+   ```
+
+8. **View the depositor info(staking info)**
+   ```shell
+   yarn cli depositor-info
+   ```

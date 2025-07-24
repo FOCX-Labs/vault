@@ -132,7 +132,7 @@ async function main() {
         await operations.syncRebase();
         break;
 
-      case "info":
+      case "vault-info":
         console.log("📊 Getting vault information...");
         await operations.getVaultInfo();
         break;
@@ -142,7 +142,7 @@ async function main() {
         await operations.getUserTokenBalance();
         break;
 
-      case "user-info":
+      case "depositor-info":
         console.log("👤 Getting user depositor information...");
         await operations.getUserInfo();
         break;
