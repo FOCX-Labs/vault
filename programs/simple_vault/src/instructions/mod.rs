@@ -8,8 +8,6 @@ pub mod add_rewards;
 pub mod update_vault_config;
 pub mod apply_rebase;
 pub mod sync_rebase;
-pub mod apply_management_fee;
-pub mod withdraw_management_fee;
 
 pub use initialize_vault::*;
 pub use initialize_vault_depositor::*;
@@ -21,5 +19,3 @@ pub use add_rewards::*;
 pub use update_vault_config::*;
 pub use apply_rebase::*;
 pub use sync_rebase::*;
-pub use apply_management_fee::*;
-pub use withdraw_management_fee::*;

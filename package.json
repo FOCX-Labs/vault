@@ -10,7 +10,12 @@
     "deploy": "anchor deploy",
     "clean": "anchor clean",
     "cli": "ts-node client/cli.ts",
-    "admin": "ts-node client/update-vault-params.ts"
+    "admin": "ts-node client/update-vault-params.ts",
+    "test:rewards": "ts-mocha -p ./tsconfig.json -t 1000000 tests/multi-user-rewards-simple.ts",
+    "unstake:all": "ts-node tests/execute-unstake.ts",
+    "unstake:user1": "sed -i '' 's/const TARGET_USER = [0-9]/const TARGET_USER = 1/' tests/execute-specific-unstake.ts && ts-node tests/execute-specific-unstake.ts",
+    "unstake:user2": "sed -i '' 's/const TARGET_USER = [0-9]/const TARGET_USER = 2/' tests/execute-specific-unstake.ts && ts-node tests/execute-specific-unstake.ts",
+    "unstake:user3": "sed -i '' 's/const TARGET_USER = [0-9]/const TARGET_USER = 3/' tests/execute-specific-unstake.ts && ts-node tests/execute-specific-unstake.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",

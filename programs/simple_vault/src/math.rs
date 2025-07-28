@@ -258,40 +258,6 @@ pub mod vault_math {
         Ok((expo_diff, divisor))
     }
 
-    /// Calculate time-based management fee with safe time handling
-    pub fn calculate_management_fee(
-        total_assets: u64,
-        management_fee_bps: u64,
-        time_elapsed_seconds: i64,
-        _last_fee_update: i64,
-    ) -> VaultResult<u64> {
-        if management_fee_bps == 0 || total_assets == 0 || time_elapsed_seconds <= 0 {
-            return Ok(0);
-        }
-
-        // Prevent time manipulation attacks - cap maximum time elapsed to 1 year
-        let max_time_elapsed = 365 * 24 * 60 * 60i64; // 1 year in seconds
-        let safe_time_elapsed = if time_elapsed_seconds > max_time_elapsed {
-            max_time_elapsed
-        } else {
-            time_elapsed_seconds
-        };
-
-        // Convert to safe u64 for calculations
-        let time_elapsed_u64 = safe_time_elapsed as u64;
-
-        // Convert to annual fee amount
-        let annual_fee = (total_assets as u128)
-            .safe_mul(management_fee_bps as u128)?
-            .safe_div(BASIS_POINTS_PRECISION as u128)?;
-        
-        // Calculate fee for the elapsed time period
-        let fee_amount = annual_fee
-            .safe_mul(time_elapsed_u64 as u128)?
-            .safe_div((365 * 24 * 60 * 60) as u128)?; // Seconds in a year
-        
-        fee_amount.safe_cast()
-    }
 }
 
 #[cfg(test)]
@@ -328,26 +294,6 @@ mod tests {
         assert_eq!(calculate_shares(500, 2000, 1000).unwrap(), 1000);
     }
 
-    #[test]
-    fn test_calculate_management_fee() {
-        // 2% annual fee for 1 year should be 2% of total assets
-        let fee = calculate_management_fee(
-            1_000_000, // 1 token
-            200,       // 2% (200 bps)
-            365 * 24 * 60 * 60, // 1 year in seconds
-            0
-        ).unwrap();
-        assert_eq!(fee, 20_000); // 2% of 1_000_000
-
-        // 6 months should be 1%
-        let fee = calculate_management_fee(
-            1_000_000,
-            200,
-            182 * 24 * 60 * 60, // ~6 months
-            0
-        ).unwrap();
-        assert!(fee >= 9_900 && fee <= 10_100); // ~1% with some rounding tolerance
-    }
 
     #[test]
     fn test_rebase_calculation() {

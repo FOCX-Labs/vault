@@ -5,3 +5,4 @@ target/*
 !target/types
 description
 package-lock.json
+test-accounts.json

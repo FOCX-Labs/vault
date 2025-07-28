@@ -31,7 +31,7 @@ pub struct Vault {
     pub last_rewards_update: i64,
     /// Unstake lockup period in seconds
     pub unstake_lockup_period: i64,
-    /// Management fee in basis points
+    /// Platform share percentage for add_rewards (in basis points)
     pub management_fee: u64,
     /// Minimum stake amount
     pub min_stake_amount: u64,
@@ -41,13 +41,11 @@ pub struct Vault {
     pub is_paused: bool,
     /// Vault creation timestamp
     pub created_at: i64,
-    /// Last fee update timestamp
-    pub last_fee_update: i64,
     /// Shares base for rebase tracking
     pub shares_base: u32,
     /// Current rebase version for tracking
     pub rebase_version: u32,
-    /// Owner shares from management fees
+    /// Owner shares (owner as a normal depositor)
     pub owner_shares: u64,
     /// Bump seed for PDA
     pub bump: u8,
@@ -74,7 +72,6 @@ impl Vault {
         8 + // max_total_assets
         1 + // is_paused
         8 + // created_at
-        8 + // last_fee_update
         4 + // shares_base
         4 + // rebase_version
         8 + // owner_shares
@@ -111,7 +108,6 @@ impl Vault {
         self.max_total_assets = params.max_total_assets.unwrap_or(u64::MAX);
         self.is_paused = false;
         self.created_at = get_current_timestamp();
-        self.last_fee_update = get_current_timestamp();
         self.shares_base = 0;
         self.rebase_version = 0;
         self.owner_shares = 0;
@@ -147,9 +143,6 @@ impl Vault {
         // Apply rebase if needed before calculating shares
         self.apply_rebase()?;
 
-        // Apply management fee before changing assets
-        self.apply_management_fee()?;
-
         let shares = vault_math::calculate_shares(amount, self.total_shares, self.total_assets)?;
 
         self.total_shares = self.total_shares.safe_add(shares)?;
@@ -167,9 +160,8 @@ impl Vault {
             return Err(VaultError::InsufficientFunds);
         }
 
-        // Apply rebase and fees before calculating assets
+        // Apply rebase before calculating assets
         self.apply_rebase()?;
-        self.apply_management_fee()?;
 
         let assets = vault_math::calculate_assets(shares, self.total_shares, self.total_assets)?;
 
@@ -270,41 +262,6 @@ impl Vault {
         Ok(None)
     }
 
-    /// Apply time-based management fee
-    pub fn apply_management_fee(&mut self) -> VaultResult<u64> {
-        let current_time = get_current_timestamp();
-        let time_elapsed = current_time.safe_sub(self.last_fee_update)?;
-
-        if time_elapsed <= 0 {
-            return Ok(0);
-        }
-
-        let fee_amount = vault_math::calculate_management_fee(
-            self.total_assets,
-            self.management_fee,
-            time_elapsed,
-            self.last_fee_update,
-        )?;
-
-        if fee_amount > 0 && self.total_shares > 0 {
-            // Convert fee to shares that go to the vault owner
-            // This effectively reduces the value per share for other users
-            let fee_shares =
-                vault_math::calculate_shares(fee_amount, self.total_shares, self.total_assets)?;
-
-            self.total_shares = self.total_shares.safe_add(fee_shares)?;
-            self.owner_shares = self.owner_shares.safe_add(fee_shares)?;
-
-            msg!(
-                "Management fee applied: {} tokens, {} shares",
-                fee_amount,
-                fee_shares
-            );
-        }
-
-        self.last_fee_update = current_time;
-        Ok(fee_amount)
-    }
 
     /// Get the effective share value considering rebase
     pub fn get_effective_share_value(&self) -> VaultResult<u128> {

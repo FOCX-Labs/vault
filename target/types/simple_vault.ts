@@ -94,33 +94,6 @@ export type SimpleVault = {
       ]
     },
     {
-      "name": "applyManagementFee",
-      "docs": [
-        "Apply management fee (only vault owner)"
-      ],
-      "discriminator": [
-        0,
-        42,
-        124,
-        150,
-        183,
-        0,
-        102,
-        236
-      ],
-      "accounts": [
-        {
-          "name": "vault",
-          "writable": true
-        },
-        {
-          "name": "owner",
-          "signer": true
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "applyRebase",
       "docs": [
         "Apply rebase to vault (only vault owner)"
@@ -771,85 +744,6 @@ export type SimpleVault = {
           }
         }
       ]
-    },
-    {
-      "name": "withdrawManagementFee",
-      "docs": [
-        "Withdraw management fee (only vault owner)"
-      ],
-      "discriminator": [
-        128,
-        200,
-        193,
-        165,
-        201,
-        229,
-        138,
-        16
-      ],
-      "accounts": [
-        {
-          "name": "vault",
-          "writable": true
-        },
-        {
-          "name": "vaultTokenAccount",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault"
-              }
-            ]
-          }
-        },
-        {
-          "name": "ownerTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "sharesToWithdraw",
-          "type": {
-            "option": "u64"
-          }
-        }
-      ]
     }
   ],
   "accounts": [
@@ -1166,7 +1060,7 @@ export type SimpleVault = {
           {
             "name": "managementFee",
             "docs": [
-              "Management fee in basis points"
+              "Platform share percentage for add_rewards (in basis points)"
             ],
             "type": "u64"
           },
@@ -1199,13 +1093,6 @@ export type SimpleVault = {
             "type": "i64"
           },
           {
-            "name": "lastFeeUpdate",
-            "docs": [
-              "Last fee update timestamp"
-            ],
-            "type": "i64"
-          },
-          {
             "name": "sharesBase",
             "docs": [
               "Shares base for rebase tracking"
@@ -1222,7 +1109,7 @@ export type SimpleVault = {
           {
             "name": "ownerShares",
             "docs": [
-              "Owner shares from management fees"
+              "Owner shares (owner as a normal depositor)"
             ],
             "type": "u64"
           },
