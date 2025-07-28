@@ -142,7 +142,7 @@ export class VaultUserOperations {
       )
 
       console.log('💰 execute stake operation...')
-      console.log(`stake amount: ${amount / 1e6} USDT`)
+      console.log(`stake amount: ${amount / 1e9} USDT`)
       console.log(`user token account: ${userTokenAccount.toString()}`)
 
       const tx = await this.program.methods
@@ -174,7 +174,7 @@ export class VaultUserOperations {
       const [vaultDepositorPDA] = this.getVaultDepositorPDA()
 
       console.log('📤 request unstake...')
-      console.log(`unstake amount: ${amount / 1e6} USDT`)
+      console.log(`unstake amount: ${amount / 1e9} USDT`)
 
       const tx = await this.program.methods
         .requestUnstake(new anchor.BN(amount))
@@ -303,11 +303,11 @@ export class VaultUserOperations {
         `platform account: ${vaultAccount.platformAccount.toString()}`
       )
       console.log(
-        `total assets: ${vaultAccount.totalAssets.toNumber() / 1e6} USDT`
+        `total assets: ${vaultAccount.totalAssets.toNumber() / 1e9} USDT`
       )
       console.log(`total shares: ${vaultAccount.totalShares.toNumber()}`)
       console.log(
-        `total rewards: ${vaultAccount.totalRewards.toNumber() / 1e6} USDT`
+        `total rewards: ${vaultAccount.totalRewards.toNumber() / 1e9} USDT`
       )
       console.log(`owner shares: ${vaultAccount.ownerShares.toNumber()}`)
       console.log(
@@ -315,7 +315,7 @@ export class VaultUserOperations {
       )
       console.log(
         `minimum stake amount: ${
-          vaultAccount.minStakeAmount.toNumber() / 1e6
+          vaultAccount.minStakeAmount.toNumber() / 1e9
         } USDT`
       )
       console.log(
@@ -350,11 +350,11 @@ export class VaultUserOperations {
       console.log('👤 user info:')
       console.log(`shares: ${depositorAccount.shares.toNumber()}`)
       console.log(
-        `total staked: ${depositorAccount.totalStaked.toNumber() / 1e6} USDT`
+        `total staked: ${depositorAccount.totalStaked.toNumber() / 1e9} USDT`
       )
       console.log(
         `total unstaked: ${
-          depositorAccount.totalUnstaked.toNumber() / 1e6
+          depositorAccount.totalUnstaked.toNumber() / 1e9
         } USDT`
       )
       console.log(`last rebase version: ${depositorAccount.lastRebaseVersion}`)
@@ -402,7 +402,7 @@ export class VaultUserOperations {
 
       console.log('💎 user asset value:')
       console.log(`shares: ${userShares}`)
-      console.log(`asset value: ${userAssetValue / 1e6} USDT`)
+      console.log(`asset value: ${userAssetValue / 1e9} USDT`)
       console.log(
         `current share value: ${
           totalShares > 0 ? (totalAssets / totalShares).toFixed(6) : 0
@@ -441,7 +441,7 @@ export class VaultUserOperations {
       const balance = Number(tokenAccountInfo.amount)
 
       console.log('💰 user token balance:')
-      console.log(`USDT balance: ${balance / 1e6} USDT`)
+      console.log(`USDT balance: ${balance / 1e9} USDT`)
 
       return balance
     } catch (error) {
@@ -516,7 +516,7 @@ export class VaultUserOperations {
       )
       console.log(
         `  - total rewards distributed: ${
-          vaultAccount.totalRewards.toNumber() / 1e6
+          vaultAccount.totalRewards.toNumber() / 1e9
         } USDT`
       )
       console.log(
@@ -599,9 +599,9 @@ export class VaultUserOperations {
       const platformAccount = platformTokenAccount || await this.getDefaultPlatformTokenAccount();
 
       console.log("🎁 Adding rewards with 50/50 split...");
-      console.log(`Total reward amount: ${amount / 1e6} USDC`);
-      console.log(`Platform will receive: ${(amount * 0.5) / 1e6} USDC (50%)`);
-      console.log(`Vault users will receive: ${(amount * 0.5) / 1e6} USDC (50%)`);
+      console.log(`Total reward amount: ${amount / 1e9} USDC`);
+      console.log(`Platform will receive: ${(amount * 0.5) / 1e9} USDC (50%)`);
+      console.log(`Vault users will receive: ${(amount * 0.5) / 1e9} USDC (50%)`);
       console.log(`Vault PDA: ${vaultPDA.toString()}`);
       console.log(`Vault Token Account: ${vaultTokenAccountPDA.toString()}`);
       console.log(`Platform Token Account: ${platformAccount.toString()}`);
@@ -610,10 +610,10 @@ export class VaultUserOperations {
       // Check source account balance
       const sourceBalance = await this.checkTokenBalance(sourceAccount);
       if (sourceBalance < amount) {
-        throw new Error(`Insufficient balance in reward source account. Required: ${amount / 1e6} USDC, Available: ${sourceBalance / 1e6} USDC`);
+        throw new Error(`Insufficient balance in reward source account. Required: ${amount / 1e9} USDC, Available: ${sourceBalance / 1e9} USDC`);
       }
 
-      console.log(`✅ Source account balance sufficient: ${sourceBalance / 1e6} USDC`);
+      console.log(`✅ Source account balance sufficient: ${sourceBalance / 1e9} USDC`);
 
       const tx = await this.program.methods
         .addRewards(new anchor.BN(amount))
@@ -679,7 +679,7 @@ export class VaultUserOperations {
   async simulateRewardInjection(amount: number): Promise<void> {
     try {
       console.log("🔍 Simulating reward injection...");
-      console.log(`Simulation amount: ${amount / 1e6} USDC`);
+      console.log(`Simulation amount: ${amount / 1e9} USDC`);
       
       // Show current vault status
       console.log("\n📊 Current vault status:");
@@ -692,17 +692,17 @@ export class VaultUserOperations {
       );
       const sourceBalance = await this.checkTokenBalance(sourceAccount);
       
-      console.log(`\n💰 Reward source account balance: ${sourceBalance / 1e6} USDC`);
+      console.log(`\n💰 Reward source account balance: ${sourceBalance / 1e9} USDC`);
       
       // Calculate 50/50 split
       const platformShare = Math.floor(amount * 0.5);
       const vaultShare = amount - platformShare;
       
       console.log("\n📋 Expected results after injection:");
-      console.log(`Source account balance will become: ${(sourceBalance - amount) / 1e6} USDC`);
-      console.log(`Platform account will receive: ${platformShare / 1e6} USDC (50%)`);
-      console.log(`Vault users will receive: ${vaultShare / 1e6} USDC (50%)`);
-      console.log(`Vault total rewards will increase by: ${vaultShare / 1e6} USDC`);
+      console.log(`Source account balance will become: ${(sourceBalance - amount) / 1e9} USDC`);
+      console.log(`Platform account will receive: ${platformShare / 1e9} USDC (50%)`);
+      console.log(`Vault users will receive: ${vaultShare / 1e9} USDC (50%)`);
+      console.log(`Vault total rewards will increase by: ${vaultShare / 1e9} USDC`);
       
       console.log("\n✅ Simulation complete. Use the 'add-rewards' command to actually execute.");
     } catch (error) {
@@ -741,10 +741,10 @@ export async function example() {
     await operations.getUserReport()
 
     // 3. stake operation
-    // await operations.stake(100 * 1e6); // stake 100 USDT
+    // await operations.stake(100 * 1e9); // stake 100 USDT
 
     // 4. request unstake
-    // await operations.requestUnstake(50 * 1e6); // request unstake 50 USDT
+    // await operations.requestUnstake(50 * 1e9); // request unstake 50 USDT
 
     // 5. wait for the lockup period to end and execute unstake
     // await operations.unstake();

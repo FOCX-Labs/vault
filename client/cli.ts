@@ -112,7 +112,7 @@ async function main() {
           throw new Error('Please provide a valid stake amount')
         }
         console.log(`💰 Staking ${stakeAmount} USDT...`)
-        await operations.stake(stakeAmount * 1e6)
+        await operations.stake(stakeAmount * 1e9)
         break
 
       case 'request-unstake':
@@ -121,7 +121,7 @@ async function main() {
           throw new Error('Please provide a valid unstake amount')
         }
         console.log(`📤 Requesting unstake ${requestAmount} USDT...`)
-        await operations.requestUnstake(requestAmount * 1e6)
+        await operations.requestUnstake(requestAmount * 1e9)
         break
 
       case 'unstake':
@@ -173,23 +173,23 @@ async function main() {
         console.log('📋 Generating complete user report...')
         await operations.getUserReport()
         break
-      
+
       case 'add-rewards':
-        const rewardAmount = parseFloat(args[1]);
+        const rewardAmount = parseFloat(args[1])
         if (isNaN(rewardAmount) || rewardAmount <= 0) {
-          throw new Error("Please provide a valid reward amount");
+          throw new Error('Please provide a valid reward amount')
         }
-        console.log(`🎁 Adding ${rewardAmount} USDC rewards to vault...`);
-        await operations.addRewards(rewardAmount * 1e6);
-        break;
+        console.log(`🎁 Adding ${rewardAmount} USDC rewards to vault...`)
+        await operations.addRewards(rewardAmount * 1e9)
+        break
 
       case 'simulate-rewards':
-        const simulateAmount = parseFloat(args[1]);
+        const simulateAmount = parseFloat(args[1])
         if (isNaN(simulateAmount) || simulateAmount <= 0) {
-          throw new Error("Please provide a valid reward amount");
+          throw new Error('Please provide a valid reward amount')
         }
-        console.log(`🔍 Simulating ${simulateAmount} USDC reward injection...`);
-        await operations.simulateRewardInjection(simulateAmount * 1e6);
+        console.log(`🔍 Simulating ${simulateAmount} USDC reward injection...`)
+        await operations.simulateRewardInjection(simulateAmount * 1e9)
         break
 
       default:
