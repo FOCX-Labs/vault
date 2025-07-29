@@ -15,7 +15,7 @@ import * as os from "os";
 import contractInfo from "../client/contract_info.json";
 
 // 配置：选择要执行unstake的用户 (1, 2, 或 3)
-const TARGET_USER = 1; // 修改这里选择用户
+const TARGET_USER = 3; // 修改这里选择用户
 
 // 测试账户配置文件路径
 const TEST_ACCOUNTS_FILE = path.join(__dirname, "../test-accounts.json");
