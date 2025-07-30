@@ -94,33 +94,6 @@ export type SimpleVault = {
       ]
     },
     {
-      "name": "applyManagementFee",
-      "docs": [
-        "Apply management fee (only vault owner)"
-      ],
-      "discriminator": [
-        0,
-        42,
-        124,
-        150,
-        183,
-        0,
-        102,
-        236
-      ],
-      "accounts": [
-        {
-          "name": "vault",
-          "writable": true
-        },
-        {
-          "name": "owner",
-          "signer": true
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "applyRebase",
       "docs": [
         "Apply rebase to vault (only vault owner)"
@@ -164,7 +137,8 @@ export type SimpleVault = {
       ],
       "accounts": [
         {
-          "name": "vault"
+          "name": "vault",
+          "writable": true
         },
         {
           "name": "vaultDepositor",
@@ -403,7 +377,8 @@ export type SimpleVault = {
       ],
       "accounts": [
         {
-          "name": "vault"
+          "name": "vault",
+          "writable": true
         },
         {
           "name": "vaultDepositor",
@@ -726,7 +701,6 @@ export type SimpleVault = {
         },
         {
           "name": "authority",
-          "writable": true,
           "signer": true
         },
         {
@@ -768,85 +742,6 @@ export type SimpleVault = {
             "defined": {
               "name": "updateVaultConfigParams"
             }
-          }
-        }
-      ]
-    },
-    {
-      "name": "withdrawManagementFee",
-      "docs": [
-        "Withdraw management fee (only vault owner)"
-      ],
-      "discriminator": [
-        128,
-        200,
-        193,
-        165,
-        201,
-        229,
-        138,
-        16
-      ],
-      "accounts": [
-        {
-          "name": "vault",
-          "writable": true
-        },
-        {
-          "name": "vaultTokenAccount",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault"
-              }
-            ]
-          }
-        },
-        {
-          "name": "ownerTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "sharesToWithdraw",
-          "type": {
-            "option": "u64"
           }
         }
       ]
@@ -955,6 +850,31 @@ export type SimpleVault = {
       "code": 6014,
       "name": "minimumStakeAmountNotMet",
       "msg": "Minimum stake amount not met"
+    },
+    {
+      "code": 6015,
+      "name": "noActiveShares",
+      "msg": "No active shares available for price reference"
+    },
+    {
+      "code": 6016,
+      "name": "stakeCooldownNotMet",
+      "msg": "Stake cooldown period not met (MEV protection)"
+    },
+    {
+      "code": 6017,
+      "name": "invariantViolation",
+      "msg": "Vault state invariant violation - critical accounting error"
+    },
+    {
+      "code": 6018,
+      "name": "cannotStakeWhenAllSharesPending",
+      "msg": "Cannot stake when all shares are pending unstake"
+    },
+    {
+      "code": 6019,
+      "name": "insufficientLiquidity",
+      "msg": "Insufficient liquidity in vault for withdrawal"
     }
   ],
   "types": [
@@ -1021,6 +941,13 @@ export type SimpleVault = {
               "When the unstake request was made"
             ],
             "type": "i64"
+          },
+          {
+            "name": "assetPerShareAtRequest",
+            "docs": [
+              "Asset amount per share at request time (scaled by PRECISION)"
+            ],
+            "type": "u128"
           }
         ]
       }
@@ -1166,7 +1093,7 @@ export type SimpleVault = {
           {
             "name": "managementFee",
             "docs": [
-              "Management fee in basis points"
+              "Platform share percentage for add_rewards (in basis points)"
             ],
             "type": "u64"
           },
@@ -1199,13 +1126,6 @@ export type SimpleVault = {
             "type": "i64"
           },
           {
-            "name": "lastFeeUpdate",
-            "docs": [
-              "Last fee update timestamp"
-            ],
-            "type": "i64"
-          },
-          {
             "name": "sharesBase",
             "docs": [
               "Shares base for rebase tracking"
@@ -1222,7 +1142,21 @@ export type SimpleVault = {
           {
             "name": "ownerShares",
             "docs": [
-              "Owner shares from management fees"
+              "Owner shares (owner as a normal depositor)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pendingUnstakeShares",
+            "docs": [
+              "Total shares pending unstake (not participating in rewards)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reservedAssets",
+            "docs": [
+              "Assets reserved for pending unstake requests (frozen assets)"
             ],
             "type": "u64"
           },
@@ -1241,7 +1175,7 @@ export type SimpleVault = {
             "type": {
               "array": [
                 "u8",
-                32
+                16
               ]
             }
           }
@@ -1335,6 +1269,13 @@ export type SimpleVault = {
             "type": "u32"
           },
           {
+            "name": "lastStakeTime",
+            "docs": [
+              "Last time user staked (for MEV protection)"
+            ],
+            "type": "i64"
+          },
+          {
             "name": "reserved",
             "docs": [
               "Reserved for future use"
@@ -1342,7 +1283,7 @@ export type SimpleVault = {
             "type": {
               "array": [
                 "u64",
-                7
+                6
               ]
             }
           }

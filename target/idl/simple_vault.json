@@ -88,33 +88,6 @@
       ]
     },
     {
-      "name": "apply_management_fee",
-      "docs": [
-        "Apply management fee (only vault owner)"
-      ],
-      "discriminator": [
-        0,
-        42,
-        124,
-        150,
-        183,
-        0,
-        102,
-        236
-      ],
-      "accounts": [
-        {
-          "name": "vault",
-          "writable": true
-        },
-        {
-          "name": "owner",
-          "signer": true
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "apply_rebase",
       "docs": [
         "Apply rebase to vault (only vault owner)"
@@ -158,7 +131,8 @@
       ],
       "accounts": [
         {
-          "name": "vault"
+          "name": "vault",
+          "writable": true
         },
         {
           "name": "vault_depositor",
@@ -397,7 +371,8 @@
       ],
       "accounts": [
         {
-          "name": "vault"
+          "name": "vault",
+          "writable": true
         },
         {
           "name": "vault_depositor",
@@ -720,7 +695,6 @@
         },
         {
           "name": "authority",
-          "writable": true,
           "signer": true
         },
         {
@@ -762,85 +736,6 @@
             "defined": {
               "name": "UpdateVaultConfigParams"
             }
-          }
-        }
-      ]
-    },
-    {
-      "name": "withdraw_management_fee",
-      "docs": [
-        "Withdraw management fee (only vault owner)"
-      ],
-      "discriminator": [
-        128,
-        200,
-        193,
-        165,
-        201,
-        229,
-        138,
-        16
-      ],
-      "accounts": [
-        {
-          "name": "vault",
-          "writable": true
-        },
-        {
-          "name": "vault_token_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault"
-              }
-            ]
-          }
-        },
-        {
-          "name": "owner_token_account",
-          "writable": true
-        },
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "shares_to_withdraw",
-          "type": {
-            "option": "u64"
           }
         }
       ]
@@ -949,6 +844,31 @@
       "code": 6014,
       "name": "MinimumStakeAmountNotMet",
       "msg": "Minimum stake amount not met"
+    },
+    {
+      "code": 6015,
+      "name": "NoActiveShares",
+      "msg": "No active shares available for price reference"
+    },
+    {
+      "code": 6016,
+      "name": "StakeCooldownNotMet",
+      "msg": "Stake cooldown period not met (MEV protection)"
+    },
+    {
+      "code": 6017,
+      "name": "InvariantViolation",
+      "msg": "Vault state invariant violation - critical accounting error"
+    },
+    {
+      "code": 6018,
+      "name": "CannotStakeWhenAllSharesPending",
+      "msg": "Cannot stake when all shares are pending unstake"
+    },
+    {
+      "code": 6019,
+      "name": "InsufficientLiquidity",
+      "msg": "Insufficient liquidity in vault for withdrawal"
     }
   ],
   "types": [
@@ -1015,6 +935,13 @@
               "When the unstake request was made"
             ],
             "type": "i64"
+          },
+          {
+            "name": "asset_per_share_at_request",
+            "docs": [
+              "Asset amount per share at request time (scaled by PRECISION)"
+            ],
+            "type": "u128"
           }
         ]
       }
@@ -1160,7 +1087,7 @@
           {
             "name": "management_fee",
             "docs": [
-              "Management fee in basis points"
+              "Platform share percentage for add_rewards (in basis points)"
             ],
             "type": "u64"
           },
@@ -1193,13 +1120,6 @@
             "type": "i64"
           },
           {
-            "name": "last_fee_update",
-            "docs": [
-              "Last fee update timestamp"
-            ],
-            "type": "i64"
-          },
-          {
             "name": "shares_base",
             "docs": [
               "Shares base for rebase tracking"
@@ -1216,7 +1136,21 @@
           {
             "name": "owner_shares",
             "docs": [
-              "Owner shares from management fees"
+              "Owner shares (owner as a normal depositor)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending_unstake_shares",
+            "docs": [
+              "Total shares pending unstake (not participating in rewards)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reserved_assets",
+            "docs": [
+              "Assets reserved for pending unstake requests (frozen assets)"
             ],
             "type": "u64"
           },
@@ -1235,7 +1169,7 @@
             "type": {
               "array": [
                 "u8",
-                32
+                16
               ]
             }
           }
@@ -1329,6 +1263,13 @@
             "type": "u32"
           },
           {
+            "name": "last_stake_time",
+            "docs": [
+              "Last time user staked (for MEV protection)"
+            ],
+            "type": "i64"
+          },
+          {
             "name": "_reserved",
             "docs": [
               "Reserved for future use"
@@ -1336,7 +1277,7 @@
             "type": {
               "array": [
                 "u64",
-                7
+                6
               ]
             }
           }

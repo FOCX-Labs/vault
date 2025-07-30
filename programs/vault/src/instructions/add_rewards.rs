@@ -42,16 +42,20 @@ pub fn add_rewards(
     
     let vault = &mut ctx.accounts.vault;
     
+    if vault.is_paused {
+        return Err(VaultError::VaultPaused.into());
+    }
+    
     if amount == 0 {
         return Err(VaultError::InvalidAmount.into());
     }
     
-    // Calculate 50-50 split using basis points for precision
-    const PLATFORM_SHARE_BPS: u64 = 5000; // 50% = 5000 basis points
+    // Calculate platform share using vault's management_fee setting
+    let platform_share_bps = vault.management_fee; // Platform share in basis points
     const BASIS_POINTS: u64 = 10000;
     
     let platform_share = ((amount as u128)
-        .safe_mul(PLATFORM_SHARE_BPS as u128)?
+        .safe_mul(platform_share_bps as u128)?
         .safe_div(BASIS_POINTS as u128)?)
         .safe_cast()?;
     
@@ -83,12 +87,13 @@ pub fn add_rewards(
     vault.add_rewards(vault_share)?;
     
     msg!(
-        "Added {} total rewards: {} to vault users ({}%), {} to platform ({}%)", 
+        "Added {} total rewards: {} to vault users ({}%), {} to platform ({}% = {} bps)", 
         amount, 
         vault_share,
         (vault_share * 100) / amount,
         platform_share,
-        (platform_share * 100) / amount
+        (platform_share * 100) / amount,
+        platform_share_bps
     );
     
     Ok(())

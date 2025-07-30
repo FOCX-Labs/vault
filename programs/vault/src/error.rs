@@ -46,6 +46,21 @@ pub enum VaultError {
     
     #[msg("Minimum stake amount not met")]
     MinimumStakeAmountNotMet,
+    
+    #[msg("No active shares available for price reference")]
+    NoActiveShares,
+    
+    #[msg("Stake cooldown period not met (MEV protection)")]
+    StakeCooldownNotMet,
+    
+    #[msg("Vault state invariant violation - critical accounting error")]
+    InvariantViolation,
+    
+    #[msg("Cannot stake when all shares are pending unstake")]
+    CannotStakeWhenAllSharesPending,
+    
+    #[msg("Insufficient liquidity in vault for withdrawal")]
+    InsufficientLiquidity,
 }
 
 pub type VaultResult<T> = std::result::Result<T, VaultError>;

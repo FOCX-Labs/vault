@@ -91,18 +91,4 @@ pub mod simple_vault {
         instructions::sync_rebase(ctx)
     }
 
-    /// Apply management fee (only vault owner)
-    pub fn apply_management_fee(
-        ctx: Context<ApplyManagementFee>,
-    ) -> Result<()> {
-        instructions::apply_management_fee(ctx)
-    }
-
-    /// Withdraw management fee (only vault owner)
-    pub fn withdraw_management_fee(
-        ctx: Context<WithdrawManagementFee>,
-        shares_to_withdraw: Option<u64>,
-    ) -> Result<()> {
-        instructions::withdraw_management_fee(ctx, shares_to_withdraw)
-    }
 }

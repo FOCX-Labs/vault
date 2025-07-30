@@ -15,6 +15,6 @@ pub const MIN_UNSTAKE_LOCKUP_MINUTES: i64 = 10; // Changed from 1 day to 10 minu
 pub const DEFAULT_UNSTAKE_LOCKUP: i64 = FOURTEEN_DAYS;
 
 /// Fee constants (in basis points)
-pub const MAX_MANAGEMENT_FEE: u64 = 10000; // 100%
-pub const DEFAULT_MANAGEMENT_FEE: u64 = 200; // 2%
+pub const MAX_MANAGEMENT_FEE: u64 = 10000; // 100% (for platform share in add_rewards)
+pub const DEFAULT_MANAGEMENT_FEE: u64 = 5000; // 50% (default platform share in add_rewards)
 pub const BASIS_POINTS_PRECISION: u64 = 10000;
