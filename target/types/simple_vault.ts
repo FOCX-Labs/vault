@@ -137,7 +137,8 @@ export type SimpleVault = {
       ],
       "accounts": [
         {
-          "name": "vault"
+          "name": "vault",
+          "writable": true
         },
         {
           "name": "vaultDepositor",
@@ -376,7 +377,8 @@ export type SimpleVault = {
       ],
       "accounts": [
         {
-          "name": "vault"
+          "name": "vault",
+          "writable": true
         },
         {
           "name": "vaultDepositor",
@@ -699,7 +701,6 @@ export type SimpleVault = {
         },
         {
           "name": "authority",
-          "writable": true,
           "signer": true
         },
         {
@@ -849,6 +850,31 @@ export type SimpleVault = {
       "code": 6014,
       "name": "minimumStakeAmountNotMet",
       "msg": "Minimum stake amount not met"
+    },
+    {
+      "code": 6015,
+      "name": "noActiveShares",
+      "msg": "No active shares available for price reference"
+    },
+    {
+      "code": 6016,
+      "name": "stakeCooldownNotMet",
+      "msg": "Stake cooldown period not met (MEV protection)"
+    },
+    {
+      "code": 6017,
+      "name": "invariantViolation",
+      "msg": "Vault state invariant violation - critical accounting error"
+    },
+    {
+      "code": 6018,
+      "name": "cannotStakeWhenAllSharesPending",
+      "msg": "Cannot stake when all shares are pending unstake"
+    },
+    {
+      "code": 6019,
+      "name": "insufficientLiquidity",
+      "msg": "Insufficient liquidity in vault for withdrawal"
     }
   ],
   "types": [
@@ -915,6 +941,13 @@ export type SimpleVault = {
               "When the unstake request was made"
             ],
             "type": "i64"
+          },
+          {
+            "name": "assetPerShareAtRequest",
+            "docs": [
+              "Asset amount per share at request time (scaled by PRECISION)"
+            ],
+            "type": "u128"
           }
         ]
       }
@@ -1114,6 +1147,20 @@ export type SimpleVault = {
             "type": "u64"
           },
           {
+            "name": "pendingUnstakeShares",
+            "docs": [
+              "Total shares pending unstake (not participating in rewards)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reservedAssets",
+            "docs": [
+              "Assets reserved for pending unstake requests (frozen assets)"
+            ],
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "docs": [
               "Bump seed for PDA"
@@ -1128,7 +1175,7 @@ export type SimpleVault = {
             "type": {
               "array": [
                 "u8",
-                32
+                16
               ]
             }
           }
@@ -1222,6 +1269,13 @@ export type SimpleVault = {
             "type": "u32"
           },
           {
+            "name": "lastStakeTime",
+            "docs": [
+              "Last time user staked (for MEV protection)"
+            ],
+            "type": "i64"
+          },
+          {
             "name": "reserved",
             "docs": [
               "Reserved for future use"
@@ -1229,7 +1283,7 @@ export type SimpleVault = {
             "type": {
               "array": [
                 "u64",
-                7
+                6
               ]
             }
           }

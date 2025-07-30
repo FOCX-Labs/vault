@@ -15,7 +15,8 @@
     "unstake:all": "ts-node tests/execute-unstake.ts",
     "unstake:user1": "sed -i '' 's/const TARGET_USER = [0-9]/const TARGET_USER = 1/' tests/execute-specific-unstake.ts && ts-node tests/execute-specific-unstake.ts",
     "unstake:user2": "sed -i '' 's/const TARGET_USER = [0-9]/const TARGET_USER = 2/' tests/execute-specific-unstake.ts && ts-node tests/execute-specific-unstake.ts",
-    "unstake:user3": "sed -i '' 's/const TARGET_USER = [0-9]/const TARGET_USER = 3/' tests/execute-specific-unstake.ts && ts-node tests/execute-specific-unstake.ts"
+    "unstake:user3": "sed -i '' 's/const TARGET_USER = [0-9]/const TARGET_USER = 3/' tests/execute-specific-unstake.ts && ts-node tests/execute-specific-unstake.ts",
+    "test:request-unstake-rewards": "ts-node tests/test-request-unstake-rewards.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",

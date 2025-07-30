@@ -160,9 +160,16 @@ async function main() {
   console.log("\n📊 Step 3: Verifying state after unstake request...");
   const afterRequestUserValue = await calculateUserValue(program, vaultPDA, user3VaultDepositor);
   
-  console.log(`   Shares after request: ${afterRequestUserValue.shares} (should be same as initial)`);
+  console.log(`   Shares after request: ${afterRequestUserValue.shares} (should be reduced)`);
   console.log(`   Value after request: ${afterRequestUserValue.value / 1e9} USDC`);
-  console.log(`   ✅ Confirmed: Shares not reduced during request phase`);
+  
+  // CRITICAL: Shares should be reduced immediately during request phase
+  const expectedSharesAfterRequest = initialUserValue.shares - actualUnstakeShares;
+  if (afterRequestUserValue.shares === expectedSharesAfterRequest) {
+    console.log(`   ✅ Confirmed: Shares correctly reduced during request phase`);
+  } else {
+    console.log(`   ❌ ERROR: Shares should be ${expectedSharesAfterRequest}, but got ${afterRequestUserValue.shares}`);
+  }
   
   // Step 4: Add rewards to the vault
   console.log("\n🎁 Step 4: Adding rewards to vault...");
