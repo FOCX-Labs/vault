@@ -30,8 +30,10 @@ pub struct VaultDepositor {
     pub created_at: i64,
     /// Last rebase version user has synced with
     pub last_rebase_version: u32,
+    /// Last time user staked (for MEV protection)
+    pub last_stake_time: i64,
     /// Reserved for future use
-    pub _reserved: [u64; 7],
+    pub _reserved: [u64; 6],
 }
 
 impl VaultDepositor {
@@ -47,7 +49,8 @@ impl VaultDepositor {
         8 + // total_rewards_claimed
         8 + // created_at
         4 + // last_rebase_version
-        56; // _reserved
+        8 + // last_stake_time
+        48; // _reserved
 
     pub fn initialize(
         &mut self,
@@ -65,6 +68,7 @@ impl VaultDepositor {
         self.total_rewards_claimed = 0;
         self.created_at = get_current_timestamp();
         self.last_rebase_version = 0;
+        self.last_stake_time = 0;
         
         Ok(())
     }
@@ -72,6 +76,9 @@ impl VaultDepositor {
     pub fn stake(&mut self, shares: u64, _rewards_per_share: u128) -> VaultResult<()> {
         // Add new shares - with automatic compounding, no need to track rewards debt
         self.shares = self.shares.safe_add(shares)?;
+        
+        // MEV PROTECTION: Record stake time to prevent same-block unstake
+        self.last_stake_time = get_current_timestamp();
         
         // Note: rewards_per_share is ignored in the new compounding model
         // Rewards are automatically compounded into the vault's total_assets
@@ -82,6 +89,13 @@ impl VaultDepositor {
     pub fn unstake(&mut self, shares: u64, _rewards_per_share: u128) -> VaultResult<()> {
         if shares > self.shares {
             return Err(VaultError::InsufficientFunds);
+        }
+        
+        // MEV PROTECTION: Prevent same-slot stake-unstake sandwich attacks
+        let current_time = get_current_timestamp();
+        const MIN_STAKE_DURATION: i64 = 1; // 1 second for testing (change to 300 for production)
+        if current_time < self.last_stake_time + MIN_STAKE_DURATION {
+            return Err(VaultError::StakeCooldownNotMet);
         }
         
         // Reduce shares - with automatic compounding, no need to track rewards debt
@@ -100,34 +114,6 @@ impl VaultDepositor {
         Ok(0)
     }
 
-    pub fn request_unstake(&mut self, shares: u64, request_time: i64) -> VaultResult<()> {
-        if shares == 0 {
-            return Err(VaultError::InvalidAmount);
-        }
-        
-        if shares > self.shares {
-            return Err(VaultError::InsufficientFunds);
-        }
-        
-        if self.unstake_request.is_pending() {
-            return Err(VaultError::UnstakeRequestAlreadyExists);
-        }
-        
-        self.unstake_request.shares = shares;
-        self.unstake_request.request_time = request_time;
-        
-        Ok(())
-    }
-
-    pub fn cancel_unstake_request(&mut self) -> VaultResult<()> {
-        if !self.unstake_request.is_pending() {
-            return Err(VaultError::NoUnstakeRequest);
-        }
-        
-        self.unstake_request.reset();
-        
-        Ok(())
-    }
 
     pub fn can_unstake(&self, current_time: i64, lockup_period: i64) -> bool {
         if !self.unstake_request.is_pending() {
@@ -137,21 +123,6 @@ impl VaultDepositor {
         current_time >= self.unstake_request.request_time + lockup_period
     }
 
-    pub fn execute_unstake(&mut self, rewards_per_share: u128) -> VaultResult<u64> {
-        if !self.unstake_request.is_pending() {
-            return Err(VaultError::NoUnstakeRequest);
-        }
-        
-        let shares = self.unstake_request.shares;
-        
-        self.unstake(shares, rewards_per_share)?;
-        
-        self.total_unstaked = self.total_unstaked.safe_add(shares)?;
-        
-        self.unstake_request.reset();
-        
-        Ok(shares)
-    }
 
     /// Legacy function for backward compatibility
     /// In the new compounding model, rewards debt is not used

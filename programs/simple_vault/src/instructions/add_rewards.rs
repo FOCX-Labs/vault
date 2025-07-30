@@ -42,6 +42,10 @@ pub fn add_rewards(
     
     let vault = &mut ctx.accounts.vault;
     
+    if vault.is_paused {
+        return Err(VaultError::VaultPaused.into());
+    }
+    
     if amount == 0 {
         return Err(VaultError::InvalidAmount.into());
     }

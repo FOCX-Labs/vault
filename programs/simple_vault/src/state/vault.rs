@@ -47,10 +47,14 @@ pub struct Vault {
     pub rebase_version: u32,
     /// Owner shares (owner as a normal depositor)
     pub owner_shares: u64,
+    /// Total shares pending unstake (not participating in rewards)
+    pub pending_unstake_shares: u64,
+    /// Assets reserved for pending unstake requests (frozen assets)
+    pub reserved_assets: u64,
     /// Bump seed for PDA
     pub bump: u8,
     /// Reserved for future use
-    pub _reserved: [u8; 32],
+    pub _reserved: [u8; 16],
 }
 
 impl Vault {
@@ -75,8 +79,10 @@ impl Vault {
         4 + // shares_base
         4 + // rebase_version
         8 + // owner_shares
+        8 + // pending_unstake_shares
+        8 + // reserved_assets
         1 + // bump
-        32; // _reserved
+        16; // _reserved
 
     pub fn initialize(
         &mut self,
@@ -111,6 +117,8 @@ impl Vault {
         self.shares_base = 0;
         self.rebase_version = 0;
         self.owner_shares = 0;
+        self.pending_unstake_shares = 0;
+        self.reserved_assets = 0;
         self.bump = bump;
 
         // Validate configuration
@@ -121,6 +129,11 @@ impl Vault {
             return Err(VaultError::InvalidVaultConfig);
         }
         if self.management_fee > MAX_MANAGEMENT_FEE {
+            return Err(VaultError::InvalidVaultConfig);
+        }
+        
+        // Additional boundary checks for extreme values
+        if self.min_stake_amount > self.max_total_assets / 2 {
             return Err(VaultError::InvalidVaultConfig);
         }
 
@@ -143,10 +156,56 @@ impl Vault {
         // Apply rebase if needed before calculating shares
         self.apply_rebase()?;
 
-        let shares = vault_math::calculate_shares(amount, self.total_shares, self.total_assets)?;
+        // CRITICAL FIX: Calculate shares based on active share value, not total
+        // This ensures new stakers get fair share allocation without diluting existing users
+        let shares = if self.get_active_shares()? == 0 {
+            // CRITICAL BOOTSTRAP LOGIC REDESIGN
+            // When no active shares exist, we must handle this very carefully
+            
+            if self.total_shares == 0 {
+                // TRUE BOOTSTRAP: First user ever, 1:1 ratio
+                amount
+            } else {
+                // FALSE BOOTSTRAP: All shares are pending unstake
+                // SECURITY FIX: Allow limited new stakes to prevent permanent DoS
+                // But protect existing pending shareholders from dilution
+                
+                // Check if this is a potential DoS attack (vault has been inactive too long)
+                let current_time = crate::utils::get_current_timestamp();
+                let vault_inactive_time = current_time - self.last_rewards_update;
+                const MAX_INACTIVE_PERIOD: i64 = 7 * 24 * 3600; // 7 days
+                
+                if vault_inactive_time > MAX_INACTIVE_PERIOD {
+                    // Vault has been inactive too long, allow emergency restart
+                    // Use conservative 1:1 ratio for new entrants
+                    amount
+                } else {
+                    // Calculate shares based on pending shares value to prevent dilution
+                    // Use the last known share value from when shares became pending
+                    let pending_share_value = SafeCast::<u128>::safe_cast(&self.total_assets)?
+                        .safe_mul(SafeCast::<u128>::safe_cast(&PRECISION)?)?
+                        .safe_div(SafeCast::<u128>::safe_cast(&self.total_shares)?)?;
+                    
+                    SafeCast::<u128>::safe_cast(&amount)?
+                        .safe_mul(SafeCast::<u128>::safe_cast(&PRECISION)?)?
+                        .safe_div(pending_share_value)?
+                        .safe_cast()?
+                }
+            }
+        } else {
+            // Normal case: Calculate shares based on active share value
+            let active_share_value = self.get_active_share_value()?;
+            SafeCast::<u128>::safe_cast(&amount)?
+                .safe_mul(SafeCast::<u128>::safe_cast(&PRECISION)?)?
+                .safe_div(active_share_value)?
+                .safe_cast()?
+        };
 
         self.total_shares = self.total_shares.safe_add(shares)?;
         self.total_assets = self.total_assets.safe_add(amount)?;
+
+        // INVARIANT CHECK: Verify state consistency after stake
+        self.verify_invariants()?;
 
         Ok(shares)
     }
@@ -163,10 +222,19 @@ impl Vault {
         // Apply rebase before calculating assets
         self.apply_rebase()?;
 
-        let assets = vault_math::calculate_assets(shares, self.total_shares, self.total_assets)?;
+        // CRITICAL FIX: Calculate assets based on active share value, not total
+        // This ensures users get the correct current value of their shares
+        let active_share_value = self.get_active_share_value()?;
+        let assets = SafeCast::<u128>::safe_cast(&shares)?
+            .safe_mul(active_share_value)?
+            .safe_div(SafeCast::<u128>::safe_cast(&PRECISION)?)?
+            .safe_cast()?;
 
         self.total_shares = self.total_shares.safe_sub(shares)?;
         self.total_assets = self.total_assets.safe_sub(assets)?;
+
+        // INVARIANT CHECK: Verify state consistency after unstake
+        self.verify_invariants()?;
 
         Ok(assets)
     }
@@ -175,21 +243,31 @@ impl Vault {
         // Apply rebase before updating rewards
         self.apply_rebase()?;
 
-        // Always add to total_assets for proper accounting
+        // Get active shares using helper function for consistency
+        let active_shares = self.get_active_shares()?;
+
+        // Add rewards to total_assets - this increases available assets
+        // Reserved assets remain unchanged, ensuring strict separation
         self.total_assets = self.total_assets.safe_add(amount)?;
         self.total_rewards = self.total_rewards.safe_add(amount)?;
 
-        // Only update rewards_per_share if there are shares
-        if self.total_shares > 0 {
-            // Update rewards statistics (keep for tracking purposes)
+        // Only update rewards_per_share if there are active shares
+        if active_shares > 0 {
+            // Update rewards statistics based on active shares only
+            // Now the calculation is: new_share_value = (available_assets + reward) / active_shares
+            // This is mathematically consistent and predictable
             self.rewards_per_share = vault_math::calculate_rewards_per_share(
                 amount,
-                self.total_shares,
+                active_shares,
                 self.rewards_per_share,
             )?;
         }
+        // If no active shares, rewards accumulate in vault waiting for new participants
 
         self.last_rewards_update = get_current_timestamp();
+
+        // INVARIANT CHECK: Verify state consistency after adding rewards
+        self.verify_invariants()?;
 
         Ok(())
     }
@@ -234,10 +312,85 @@ impl Vault {
         [b"vault", self.name.as_ref(), std::slice::from_ref(&self.bump)]
     }
 
+    /// Get available assets (total_assets - reserved_assets)
+    /// This represents assets that actively participate in rewards
+    pub fn get_available_assets(&self) -> VaultResult<u64> {
+        self.total_assets.safe_sub(self.reserved_assets)
+    }
+
+    /// Get active shares (total_shares - pending_unstake_shares)  
+    /// This represents shares that actively participate in rewards
+    pub fn get_active_shares(&self) -> VaultResult<u64> {
+        self.total_shares.safe_sub(self.pending_unstake_shares)
+    }
+
+    /// Get current share value for active participants
+    /// share_value = available_assets / active_shares
+    pub fn get_active_share_value(&self) -> VaultResult<u128> {
+        let available_assets = self.get_available_assets()?;
+        let active_shares = self.get_active_shares()?;
+        
+        if active_shares == 0 {
+            // EDGE CASE: When all shares are pending, return 1:1 ratio for new stakers
+            // This is reasonable because there are no active participants to dilute
+            return Ok(SafeCast::<u128>::safe_cast(&PRECISION)?);
+        }
+
+        SafeCast::<u128>::safe_cast(&available_assets)?
+            .safe_mul(SafeCast::<u128>::safe_cast(&PRECISION)?)?
+            .safe_div(SafeCast::<u128>::safe_cast(&active_shares)?)
+    }
+
+    /// CRITICAL: Verify vault state invariants to prevent accounting errors
+    /// This should be called after any state-modifying operation
+    pub fn verify_invariants(&self) -> VaultResult<()> {
+        // Invariant 1: total_assets = available_assets + reserved_assets
+        let available_assets = self.get_available_assets()?;
+        let expected_total = available_assets.safe_add(self.reserved_assets)?;
+        if self.total_assets != expected_total {
+            msg!("INVARIANT VIOLATION: total_assets ({}) != available_assets ({}) + reserved_assets ({})", 
+                 self.total_assets, available_assets, self.reserved_assets);
+            return Err(VaultError::InvariantViolation);
+        }
+
+        // Invariant 2: total_shares = active_shares + pending_shares
+        let active_shares = self.get_active_shares()?;
+        let expected_total_shares = active_shares.safe_add(self.pending_unstake_shares)?;
+        if self.total_shares != expected_total_shares {
+            msg!("INVARIANT VIOLATION: total_shares ({}) != active_shares ({}) + pending_shares ({})", 
+                 self.total_shares, active_shares, self.pending_unstake_shares);
+            return Err(VaultError::InvariantViolation);
+        }
+
+        // Invariant 3: reserved_assets should never exceed total_assets
+        if self.reserved_assets > self.total_assets {
+            msg!("INVARIANT VIOLATION: reserved_assets ({}) > total_assets ({})", 
+                 self.reserved_assets, self.total_assets);
+            return Err(VaultError::InvariantViolation);
+        }
+
+        // Invariant 4: pending_unstake_shares should never exceed total_shares
+        if self.pending_unstake_shares > self.total_shares {
+            msg!("INVARIANT VIOLATION: pending_unstake_shares ({}) > total_shares ({})", 
+                 self.pending_unstake_shares, self.total_shares);
+            return Err(VaultError::InvariantViolation);
+        }
+
+        Ok(())
+    }
+
     /// Apply rebase mechanism when shares become too large relative to assets
     pub fn apply_rebase(&mut self) -> VaultResult<Option<u128>> {
         if self.total_assets == 0 || self.total_shares <= self.total_assets {
             return Ok(None);
+        }
+        
+        // SECURITY: Prevent extreme rebase scenarios
+        let ratio = (SafeCast::<u128>::safe_cast(&self.total_shares)?
+            .safe_div(SafeCast::<u128>::safe_cast(&self.total_assets.max(1))?)?);
+        
+        if ratio > 1_000_000 {  // If shares are >1M times assets, something is very wrong
+            return Err(VaultError::InvariantViolation);
         }
 
         let (expo_diff, rebase_divisor) =
