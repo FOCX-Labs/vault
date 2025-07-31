@@ -79,7 +79,9 @@ export type SimpleVault = {
         },
         {
           "name": "rewardSourceAuthority",
-          "signer": true
+          "docs": [
+            "When called via CPI, this should be validated by the calling program"
+          ]
         },
         {
           "name": "tokenProgram",
@@ -875,6 +877,11 @@ export type SimpleVault = {
       "code": 6019,
       "name": "insufficientLiquidity",
       "msg": "Insufficient liquidity in vault for withdrawal"
+    },
+    {
+      "code": 6020,
+      "name": "unauthorizedRewardSource",
+      "msg": "Unauthorized reward source"
     }
   ],
   "types": [

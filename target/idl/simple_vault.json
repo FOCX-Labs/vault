@@ -73,7 +73,9 @@
         },
         {
           "name": "reward_source_authority",
-          "signer": true
+          "docs": [
+            "When called via CPI, this should be validated by the calling program"
+          ]
         },
         {
           "name": "token_program",
@@ -869,6 +871,11 @@
       "code": 6019,
       "name": "InsufficientLiquidity",
       "msg": "Insufficient liquidity in vault for withdrawal"
+    },
+    {
+      "code": 6020,
+      "name": "UnauthorizedRewardSource",
+      "msg": "Unauthorized reward source"
     }
   ],
   "types": [

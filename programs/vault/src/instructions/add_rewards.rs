@@ -29,7 +29,9 @@ pub struct AddRewards<'info> {
     )]
     pub platform_token_account: Account<'info, TokenAccount>,
     
-    pub reward_source_authority: Signer<'info>,
+    /// CHECK: This account can be either a Signer or a PDA for CPI calls
+    /// When called via CPI, this should be validated by the calling program
+    pub reward_source_authority: AccountInfo<'info>,
     
     pub token_program: Program<'info, Token>,
 }
@@ -67,8 +69,10 @@ pub fn add_rewards(
         to: ctx.accounts.vault_token_account.to_account_info(),
         authority: ctx.accounts.reward_source_authority.to_account_info(),
     };
-    let vault_cpi_program = ctx.accounts.token_program.to_account_info();
-    let vault_cpi_ctx = CpiContext::new(vault_cpi_program, vault_cpi_accounts);
+    let vault_cpi_ctx = CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        vault_cpi_accounts,
+    );
     
     token::transfer(vault_cpi_ctx, vault_share)?;
     
@@ -78,8 +82,10 @@ pub fn add_rewards(
         to: ctx.accounts.platform_token_account.to_account_info(),
         authority: ctx.accounts.reward_source_authority.to_account_info(),
     };
-    let platform_cpi_program = ctx.accounts.token_program.to_account_info();
-    let platform_cpi_ctx = CpiContext::new(platform_cpi_program, platform_cpi_accounts);
+    let platform_cpi_ctx = CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        platform_cpi_accounts,
+    );
     
     token::transfer(platform_cpi_ctx, platform_share)?;
     

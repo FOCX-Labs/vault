@@ -61,6 +61,9 @@ pub enum VaultError {
     
     #[msg("Insufficient liquidity in vault for withdrawal")]
     InsufficientLiquidity,
+    
+    #[msg("Unauthorized reward source")]
+    UnauthorizedRewardSource,
 }
 
 pub type VaultResult<T> = std::result::Result<T, VaultError>;
