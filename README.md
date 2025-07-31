@@ -101,13 +101,38 @@ await program.methods
   .addRewards(new BN(100000)) // 0.0001 tokens
   .accounts({
     vault: vaultPDA,
-    rewardsTokenAccount: rewardsTokenAccount,
+    vaultTokenAccount: vaultTokenAccount,
     rewardSourceAccount: rewardSourceAccount,
+    platformTokenAccount: platformTokenAccount,
     rewardSourceAuthority: owner.publicKey,
     tokenProgram: TOKEN_PROGRAM_ID,
   })
   .signers([owner])
   .rpc()
+```
+
+#### For CPI Calls (from other contracts)
+
+```typescript
+// Shop contract calling vault's add_rewards via CPI
+const addRewardsInstruction = await program.methods
+  .addRewards(new BN(platformFee))
+  .accounts({
+    vault: vaultPDA,
+    vaultTokenAccount: vaultTokenAccount,
+    rewardSourceAccount: SourceContractTokenAccount, // Source contract's token account
+    platformTokenAccount: platformTokenAccount,
+    rewardSourceAuthority: shopProgramAuthority, // Source contract's PDA
+    tokenProgram: TOKEN_PROGRAM_ID,
+  })
+  .instruction();
+
+// Shop contract uses invoke_signed to call vault
+invoke_signed(
+  &addRewardsInstruction,
+  &accounts,
+  &[&shop_pda_seeds], // Shop provides its PDA seeds for signing
+)?;
 ```
 
 ## Building and Testing
@@ -126,13 +151,28 @@ anchor test
 anchor deploy
 ```
 
+## CPI Support
+
+The vault supports Cross-Program Invocation (CPI) for the `add_rewards` function, allowing other contracts to integrate with the vault system:
+
+### Key Features
+- **PDA Authority Support**: External contracts can use their PDAs as the reward source authority
+- **Automatic Signature Propagation**: When called via `invoke_signed`, signatures are automatically propagated to internal token transfers
+- **Flexible Integration**: Works with escrow contracts, marketplaces, and other DeFi protocols
+
+### Integration Requirements
+1. **Token Account Ownership**: The calling contract must own the reward source token account
+2. **Proper CPI Call**: Use `invoke_signed` with the correct PDA seeds
+3. **Account Validation**: Ensure all accounts match the expected structure
+
 ## Security Features
 
 - **PDA-based accounts**: All vault accounts use Program Derived Addresses
-- **Authority checks**: Strict validation of account ownership
+- **Authority checks**: Strict validation of account ownership with CPI support
 - **Overflow protection**: Safe math operations throughout
 - **Lockup periods**: Prevent immediate unstaking
 - **Configurable limits**: Max assets, min stake amounts, etc.
+- **CPI Security**: Token program validates all authority signatures, including PDAs
 
 ## Configuration
 
