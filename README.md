@@ -190,4 +190,4 @@ After unstaking, funds are not automatically transferred to the user's wallet. T
 
 ## License
 
-TBD
+Apache License 2.0
