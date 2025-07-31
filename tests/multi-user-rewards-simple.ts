@@ -672,27 +672,41 @@ describe('Multi-User Stake Rewards Distribution (Simplified)', () => {
     const totalShares = vaultAfter.totalShares.toNumber()
     const totalAssets = vaultAfter.totalAssets.toNumber()
 
+    // CRITICAL FIX: Use same logic as contract - available_assets and active_shares
+    
     // 计算奖励前的用户价值作为基准
-    const user1ValueBefore = Math.floor(
-      (user1DepositorBefore.shares.toNumber() * vaultBefore.totalAssets.toNumber()) / vaultBefore.totalShares.toNumber()
-    )
-    const user2ValueBefore = Math.floor(
-      (user2DepositorBefore.shares.toNumber() * vaultBefore.totalAssets.toNumber()) / vaultBefore.totalShares.toNumber()
-    )
-    const user3ValueBefore = Math.floor(
-      (user3DepositorBefore.shares.toNumber() * vaultBefore.totalAssets.toNumber()) / vaultBefore.totalShares.toNumber()
-    )
+    const beforeTotalAssets = vaultBefore.totalAssets.toNumber()
+    const beforeTotalShares = vaultBefore.totalShares.toNumber()
+    const beforePendingUnstakeShares = vaultBefore.pendingUnstakeShares.toNumber()
+    const beforeReservedAssets = vaultBefore.reservedAssets.toNumber()
+    const beforeAvailableAssets = beforeTotalAssets - beforeReservedAssets
+    const beforeActiveShares = beforeTotalShares - beforePendingUnstakeShares
+    
+    const user1ValueBefore = beforeActiveShares > 0 ? Math.floor(
+      (user1DepositorBefore.shares.toNumber() * beforeAvailableAssets) / beforeActiveShares
+    ) : 0
+    const user2ValueBefore = beforeActiveShares > 0 ? Math.floor(
+      (user2DepositorBefore.shares.toNumber() * beforeAvailableAssets) / beforeActiveShares
+    ) : 0
+    const user3ValueBefore = beforeActiveShares > 0 ? Math.floor(
+      (user3DepositorBefore.shares.toNumber() * beforeAvailableAssets) / beforeActiveShares
+    ) : 0
     
     // 计算奖励后的用户价值
-    const user1Value = Math.floor(
-      (user1DepositorBefore.shares.toNumber() * totalAssets) / totalShares
-    )
-    const user2Value = Math.floor(
-      (user2DepositorBefore.shares.toNumber() * totalAssets) / totalShares
-    )
-    const user3Value = Math.floor(
-      (user3DepositorBefore.shares.toNumber() * totalAssets) / totalShares
-    )
+    const afterPendingUnstakeShares = vaultAfter.pendingUnstakeShares.toNumber()
+    const afterReservedAssets = vaultAfter.reservedAssets.toNumber()
+    const afterAvailableAssets = totalAssets - afterReservedAssets
+    const afterActiveShares = totalShares - afterPendingUnstakeShares
+    
+    const user1Value = afterActiveShares > 0 ? Math.floor(
+      (user1DepositorBefore.shares.toNumber() * afterAvailableAssets) / afterActiveShares
+    ) : 0
+    const user2Value = afterActiveShares > 0 ? Math.floor(
+      (user2DepositorBefore.shares.toNumber() * afterAvailableAssets) / afterActiveShares
+    ) : 0
+    const user3Value = afterActiveShares > 0 ? Math.floor(
+      (user3DepositorBefore.shares.toNumber() * afterAvailableAssets) / afterActiveShares
+    ) : 0
 
     // 奖励 = 奖励后价值 - 奖励前价值 (而不是 - stake金额)
     const user1Reward = user1Value - user1ValueBefore

@@ -84,8 +84,17 @@ const calculateUserValue = async (
   const depositor = await program.account.vaultDepositor.fetch(userVaultDepositor);
   
   const shares = depositor.shares.toNumber();
-  const value = Math.floor((shares * vault.totalAssets.toNumber()) / vault.totalShares.toNumber());
-  const sharePercent = (shares * 100) / vault.totalShares.toNumber();
+  
+  // CRITICAL FIX: Use same logic as contract - available_assets and active_shares
+  const totalAssets = vault.totalAssets.toNumber();
+  const totalShares = vault.totalShares.toNumber();
+  const pendingUnstakeShares = vault.pendingUnstakeShares.toNumber();
+  const reservedAssets = vault.reservedAssets.toNumber();
+  const availableAssets = totalAssets - reservedAssets;
+  const activeShares = totalShares - pendingUnstakeShares;
+  
+  const value = activeShares > 0 ? Math.floor((shares * availableAssets) / activeShares) : 0;
+  const sharePercent = (shares * 100) / activeShares;
   
   return { shares, value, sharePercent };
 };

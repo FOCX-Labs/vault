@@ -394,10 +394,16 @@ export class VaultUserOperations {
       const userShares = depositorAccount.shares.toNumber()
       const totalShares = vaultAccount.totalShares.toNumber()
       const totalAssets = vaultAccount.totalAssets.toNumber()
+      
+      // CRITICAL FIX: Use same logic as contract - available_assets and active_shares
+      const pendingUnstakeShares = vaultAccount.pendingUnstakeShares.toNumber()
+      const reservedAssets = vaultAccount.reservedAssets.toNumber()
+      const availableAssets = totalAssets - reservedAssets
+      const activeShares = totalShares - pendingUnstakeShares
 
       let userAssetValue = 0
-      if (totalShares > 0) {
-        userAssetValue = (userShares * totalAssets) / totalShares
+      if (activeShares > 0) {
+        userAssetValue = (userShares * availableAssets) / activeShares
       }
 
       console.log('💎 user asset value:')
@@ -405,9 +411,11 @@ export class VaultUserOperations {
       console.log(`asset value: ${userAssetValue / 1e9} USDC`)
       console.log(
         `current share value: ${
-          totalShares > 0 ? (totalAssets / totalShares).toFixed(6) : 0
+          activeShares > 0 ? (availableAssets / activeShares).toFixed(6) : 0
         } USDC/share`
       )
+      console.log(`available assets: ${availableAssets / 1e9} USDC`)
+      console.log(`active shares: ${activeShares}`)
 
       return userAssetValue
     } catch (error) {

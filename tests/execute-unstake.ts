@@ -316,7 +316,14 @@ async function main() {
       
       try {
         const depositor = await program.account.vaultDepositor.fetch(depositorPDA);
-        const currentValue = Math.floor((depositor.shares.toNumber() * vaultBeforeNewReward.totalAssets.toNumber()) / vaultBeforeNewReward.totalShares.toNumber());
+        // CRITICAL FIX: Use same logic as contract - available_assets and active_shares
+        const totalAssets = vaultBeforeNewReward.totalAssets.toNumber();
+        const totalShares = vaultBeforeNewReward.totalShares.toNumber();
+        const pendingUnstakeShares = vaultBeforeNewReward.pendingUnstakeShares.toNumber();
+        const reservedAssets = vaultBeforeNewReward.reservedAssets.toNumber();
+        const availableAssets = totalAssets - reservedAssets;
+        const activeShares = totalShares - pendingUnstakeShares;
+        const currentValue = activeShares > 0 ? Math.floor((depositor.shares.toNumber() * availableAssets) / activeShares) : 0;
         console.log(`   User${userNum}: ${depositor.shares.toNumber()} shares (${currentValue / 1e9} USDC value)`);
       } catch (error) {
         console.log(`   User${userNum}: No depositor account or error`);
@@ -370,8 +377,22 @@ async function main() {
       
       try {
         const depositor = await program.account.vaultDepositor.fetch(depositorPDA);
-        const oldValue = Math.floor((depositor.shares.toNumber() * vaultBeforeNewReward.totalAssets.toNumber()) / vaultBeforeNewReward.totalShares.toNumber());
-        const newValue = Math.floor((depositor.shares.toNumber() * vaultAfterNewReward.totalAssets.toNumber()) / vaultAfterNewReward.totalShares.toNumber());
+        // CRITICAL FIX: Use correct logic for both old and new value calculations
+        const oldTotalAssets = vaultBeforeNewReward.totalAssets.toNumber();
+        const oldTotalShares = vaultBeforeNewReward.totalShares.toNumber();
+        const oldPendingUnstakeShares = vaultBeforeNewReward.pendingUnstakeShares.toNumber();
+        const oldReservedAssets = vaultBeforeNewReward.reservedAssets.toNumber();
+        const oldAvailableAssets = oldTotalAssets - oldReservedAssets;
+        const oldActiveShares = oldTotalShares - oldPendingUnstakeShares;
+        const oldValue = oldActiveShares > 0 ? Math.floor((depositor.shares.toNumber() * oldAvailableAssets) / oldActiveShares) : 0;
+        
+        const newTotalAssets = vaultAfterNewReward.totalAssets.toNumber();
+        const newTotalShares = vaultAfterNewReward.totalShares.toNumber();
+        const newPendingUnstakeShares = vaultAfterNewReward.pendingUnstakeShares.toNumber();
+        const newReservedAssets = vaultAfterNewReward.reservedAssets.toNumber();
+        const newAvailableAssets = newTotalAssets - newReservedAssets;
+        const newActiveShares = newTotalShares - newPendingUnstakeShares;
+        const newValue = newActiveShares > 0 ? Math.floor((depositor.shares.toNumber() * newAvailableAssets) / newActiveShares) : 0;
         const rewardIncrease = newValue - oldValue;
         
         console.log(`   User${userNum}:`);
