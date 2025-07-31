@@ -127,11 +127,11 @@ const addRewardsInstruction = await program.methods
   })
   .instruction();
 
-// Shop contract uses invoke_signed to call vault
+// Source contract uses invoke_signed to call vault
 invoke_signed(
   &addRewardsInstruction,
   &accounts,
-  &[&shop_pda_seeds], // Shop provides its PDA seeds for signing
+  &[&source_contract_pda_seeds], // Source contract provides its PDA seeds for signing
 )?;
 ```
 
