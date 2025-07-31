@@ -34,13 +34,13 @@ For common users, some routine operations related to staking can be performed, b
 2. **Stake** - Stake tokens to the vault
 
     ```shell
-    yarn cli stake <USDT_AMOUNT>
+    yarn cli stake <USDC_AMOUNT>
     ```
 
 3. **Request Unstake** - Request to unstake tokens (starts lockup period)
 
     ```shell
-    yarn cli request-unstake <USDT_AMOUNT>
+    yarn cli request-unstake <USDC_AMOUNT>
     ```
 
 4. **Cancel Unstake Request** - After requesting unstake, if you change your mind, you can cancel

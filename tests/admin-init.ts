@@ -26,7 +26,7 @@ describe('admin_initialization', () => {
   const program = anchor.workspace.SimpleVault as Program<SimpleVault>
 
   // Declare all needed variables
-  let tokenMint: PublicKey // USDT token mint address
+  let tokenMint: PublicKey // USDC token mint address
   let vaultPDA: PublicKey // Vault PDA address
   let vaultTokenAccount: PublicKey // Vault token account address
   let owner: Keypair // Admin/Owner wallet
@@ -100,24 +100,24 @@ describe('admin_initialization', () => {
       } SOL`
     )
 
-    // ========== Step 2: Create USDT Token Mint ==========
-    console.log('\n📋 Step 2: Create USDT Token Mint (6 decimal places)')
+    // ========== Step 2: Create USDC Token Mint ==========
+    console.log('\n📋 Step 2: Create USDC Token Mint (6 decimal places)')
 
     // Check if there is a pre-configured token mint
-    if (contract_info && contract_info.usdt_address) {
-      console.log('📝 Using pre-configured USDT token mint...')
-      tokenMint = new PublicKey(contract_info.usdt_address)
-      console.log(`✅ Using existing USDT Token Mint: ${tokenMint.toString()}`)
+    if (contract_info && contract_info.USDC_address) {
+      console.log('📝 Using pre-configured USDC token mint...')
+      tokenMint = new PublicKey(contract_info.USDC_address)
+      console.log(`✅ Using existing USDC Token Mint: ${tokenMint.toString()}`)
     } else {
-      console.log('📝 Creating new USDT token mint...')
+      console.log('📝 Creating new USDC token mint...')
       tokenMint = await createMint(
         provider.connection,
         owner, // Payer
         owner.publicKey, // mint authority
         null, // freeze authority (not set)
-        6 // USDT standard 6 decimal places
+        6 // USDC standard 6 decimal places
       )
-      console.log(`✅ Newly created USDT Token Mint: ${tokenMint.toString()}`)
+      console.log(`✅ Newly created USDC Token Mint: ${tokenMint.toString()}`)
     }
 
     // ========== Step 3: Calculate all PDA addresses ==========
@@ -178,9 +178,9 @@ describe('admin_initialization', () => {
       )
     }
 
-    // ========== Step 5: Mint USDT to reward source account ==========
-    console.log('\n📋 Step 5: Mint USDT to reward source account')
-    const rewardAmount = 1_000_000 // 1 USDT
+    // ========== Step 5: Mint USDC to reward source account ==========
+    console.log('\n📋 Step 5: Mint USDC to reward source account')
+    const rewardAmount = 1_000_000 // 1 USDC
 
     try {
       await mintTo(
@@ -192,14 +192,14 @@ describe('admin_initialization', () => {
         rewardAmount
       )
       console.log(
-        `✅ Minted ${rewardAmount / 1e9} USDT to reward source account`
+        `✅ Minted ${rewardAmount / 1e9} USDC to reward source account`
       )
     } catch (error) {
-      console.error('❌ Failed to mint USDT:', error)
+      console.error('❌ Failed to mint USDC:', error)
       console.log('⚠️  Possible reasons:')
       console.log('   1. Current wallet is not the authority of token mint')
       console.log('   2. Using existing token mint, no mint authority')
-      console.log('   3. Need to get USDT from other sources')
+      console.log('   3. Need to get USDC from other sources')
 
       // If mint fails, skip this step but continue with initialization
       console.log('🔄 Skipping minting step, continuing with initialization...')
@@ -223,7 +223,7 @@ describe('admin_initialization', () => {
       `   - Management fee: ${contract_info.management_fee}% annualized`
     )
     console.log(
-      `   - Minimum stake amount: ${contract_info.min_stake_amount} USDT`
+      `   - Minimum stake amount: ${contract_info.min_stake_amount} USDC`
     )
     console.log(`   - Maximum total assets: Unlimited`)
 
@@ -235,13 +235,13 @@ describe('admin_initialization', () => {
           contract_info.unstake_lockup_period * 60 * 60
         ), // 24h lockup period (minimum requirement)
         managementFee: new anchor.BN(contract_info.management_fee), // 0% annualized management fee (000 basis points)
-        minStakeAmount: new anchor.BN(contract_info.min_stake_amount * 1e9), // 1 USDT minimum stake
+        minStakeAmount: new anchor.BN(contract_info.min_stake_amount * 1e9), // 1 USDC minimum stake
         maxTotalAssets: null, // Unlimited total assets
       })
       .accounts({
         vault: vaultPDA, // Vault PDA
         owner: owner.publicKey, // Admin wallet
-        tokenMint: tokenMint, // USDT mint
+        tokenMint: tokenMint, // USDC mint
         vaultTokenAccount: vaultTokenAccount, // Vault token account
         tokenProgram: TOKEN_PROGRAM_ID, // SPL Token program
         systemProgram: SystemProgram.programId, // System program
@@ -268,7 +268,7 @@ describe('admin_initialization', () => {
       }%)`
     )
     console.log(
-      `   ✅ Min Stake Amount: ${vault.minStakeAmount.toNumber() / 1e9} USDT`
+      `   ✅ Min Stake Amount: ${vault.minStakeAmount.toNumber() / 1e9} USDC`
     )
     console.log(
       `   ✅ Lockup Period: ${
@@ -299,7 +299,7 @@ describe('admin_initialization', () => {
       } days`
     )
     console.log(
-      `💵 Minimum stake: ${vault.minStakeAmount.toNumber() / 1e9} USDT`
+      `💵 Minimum stake: ${vault.minStakeAmount.toNumber() / 1e9} USDC`
     )
     console.log(
       '\n✅ Vault has been successfully initialized, users can now start staking!'

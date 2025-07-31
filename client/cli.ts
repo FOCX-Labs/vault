@@ -20,7 +20,7 @@ Usage:
 Available commands:
   help                     Show help information
   init                     Initialize user depositor account
-  stake <amount>           Stake specified amount (USDT)
+  stake <amount>           Stake specified amount (USDC)
   request-unstake <amount> Request unstake specified amount
   unstake                  Execute unstake (requires lockup period to end)
   cancel-unstake           Cancel unstake request
@@ -41,12 +41,12 @@ Configuration options:
 
 Examples:
   node cli.ts init                          # Initialize user account
-  node cli.ts stake 100                     # Stake 100 USDT
-  node cli.ts request-unstake 50            # Request unstake 50 USDT
+  node cli.ts stake 100                     # Stake 100 USDC
+  node cli.ts request-unstake 50            # Request unstake 50 USDC
   node cli.ts report                        # View complete report
   node cli.ts vault-info                          # View vault information
-  node cli.ts balance                       # View USDT balance
-  node cli.ts --wallet ./my-wallet.json stake 200  # Use specified wallet to stake 200 USDT
+  node cli.ts balance                       # View USDC balance
+  node cli.ts --wallet ./my-wallet.json stake 200  # Use specified wallet to stake 200 USDC
   node cli.ts add-rewards 100                   # Add 100 USDC rewards (50% to platform, 50% to users)
   node cli.ts simulate-rewards 50               # Simulate adding 50 USDC rewards (dry run)
 `
@@ -111,7 +111,7 @@ async function main() {
         if (isNaN(stakeAmount) || stakeAmount <= 0) {
           throw new Error('Please provide a valid stake amount')
         }
-        console.log(`💰 Staking ${stakeAmount} USDT...`)
+        console.log(`💰 Staking ${stakeAmount} USDC...`)
         await operations.stake(stakeAmount * 1e9)
         break
 
@@ -120,7 +120,7 @@ async function main() {
         if (isNaN(requestAmount) || requestAmount <= 0) {
           throw new Error('Please provide a valid unstake amount')
         }
-        console.log(`📤 Requesting unstake ${requestAmount} USDT...`)
+        console.log(`📤 Requesting unstake ${requestAmount} USDC...`)
         await operations.requestUnstake(requestAmount * 1e9)
         break
 
