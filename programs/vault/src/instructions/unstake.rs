@@ -140,7 +140,7 @@ pub fn unstake(
     
     // Note: User's shares were already reduced during request_unstake
     // No need to reduce again here
-    vault_depositor.total_unstaked = vault_depositor.total_unstaked.safe_add(shares)?;
+    vault_depositor.total_unstaked = vault_depositor.total_unstaked.safe_add(amount)?;
     vault_depositor.unstake_request.reset();
     
     // INVARIANT CHECK: Verify vault state consistency after unstake
