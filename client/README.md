@@ -5,7 +5,7 @@
 
 Information about the contract is all in the `contract_info.json` file.
 
-```json
+```
 {
     "programId": "EHiKn3J5wywNG2rHV2Qt74AfNqtJajhPerkVzYXudEwn",
     "usdc_address": "DXDVt289yXEcqXDd9Ub3HqSBTWwrmNB8DzQEagv9Svtu",
