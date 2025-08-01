@@ -14,9 +14,12 @@ Information about the contract is all in the `contract_info.json` file.
     "vault_name": "Insurance Fund Vault",
     "vault_pda": "8hDcWvDXvZHcqneLAPBQMjCY9Bpwatdyv16fx7Pf3fys",
     "vault_token_account": "GSzHB4ZRdA26yZRXRnSvTx41YJFQnBivifaNn6XKHQy1",
-    "unstake_lockup_period": 24,
-    "management_fee": 0,
-    "min_stake_amount": 1
+    // 720s
+    "unstake_lockup_period": 720,
+    // 50%
+    "management_fee": 5000,
+    // The value here is set in the smallest precision of USDC. Currently, the minimum stake is 0.001 USDC, and the precision of USDC is 9 digits, so 1000000 is entered here.
+    "min_stake_amount": 1000000
 }
 ```
 
