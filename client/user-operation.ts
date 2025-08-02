@@ -583,6 +583,22 @@ export class VaultUserOperations {
       await this.getRewardDistributionInfo()
       console.log()
 
+      // Add APY/APR calculation
+      try {
+        await this.calculateAPYAPR()
+      } catch (error) {
+        console.log('📈 APY/APR calculation: Unable to calculate (insufficient data)')
+      }
+      console.log()
+
+      // Add stake statistics
+      try {
+        await this.getStakeStatistics()
+      } catch (error) {
+        console.log('📊 Stake statistics: Unable to fetch statistics')
+      }
+      console.log()
+
       console.log('📋 ===== report end =====')
     } catch (error) {
       console.error('❌ generate user report failed:', error)
@@ -747,6 +763,213 @@ export class VaultUserOperations {
       )
     } catch (error) {
       console.error('❌ Simulation failed:', error)
+      throw error
+    }
+  }
+
+  // Calculate APY/APR based on vault performance
+  async calculateAPYAPR(periodDays: number = 30): Promise<{apy: number, apr: number}> {
+    try {
+      console.log(`📈 Calculating APY/APR based on ${periodDays} days performance...`)
+      
+      const [vaultPDA] = this.getVaultPDA()
+      const vaultAccount = await this.program.account.vault.fetch(vaultPDA)
+      
+      const totalAssets = vaultAccount.totalAssets.toNumber()
+      const totalRewards = vaultAccount.totalRewards.toNumber()
+      const totalShares = vaultAccount.totalShares.toNumber()
+      const createdAt = vaultAccount.createdAt.toNumber()
+      
+      // Calculate time periods
+      const currentTime = Math.floor(Date.now() / 1000)
+      const vaultAgeSeconds = currentTime - createdAt
+      const vaultAgeDays = vaultAgeSeconds / (24 * 60 * 60)
+      
+      console.log(`\n🏦 Vault Performance Metrics:`)
+      console.log(`   Vault age: ${vaultAgeDays.toFixed(2)} days`)
+      console.log(`   Total assets: ${totalAssets / 1e9} USDC`)
+      console.log(`   Total rewards distributed: ${totalRewards / 1e9} USDC`)
+      console.log(`   Total shares: ${totalShares}`)
+      
+      // Calculate yield metrics
+      let apy = 0
+      let apr = 0
+      
+      if (totalAssets > 0 && vaultAgeDays > 0 && totalRewards > 0) {
+        // For yield calculation, we need to understand:
+        // - totalRewards: cumulative rewards added to vault (50% of all add_rewards calls)
+        // - totalAssets: current total value in vault (includes compounded growth)
+        // - The vault compounds automatically, so share value increases over time
+        
+        // Method 1: Use total rewards as yield over time
+        // This assumes all current assets were there from the beginning (simplified)
+        const avgAssets = totalAssets // Approximation: current total as average
+        const totalYieldRate = totalRewards / avgAssets
+        const dailyYield = totalYieldRate / vaultAgeDays
+        
+        // APR (simple interest): daily yield × 365
+        apr = dailyYield * 365 * 100
+        
+        // APY (compound interest): (1 + daily yield)^365 - 1
+        apy = (Math.pow(1 + dailyYield, 365) - 1) * 100
+        
+        console.log(`\n📊 Yield Calculations:`)
+        console.log(`   Current total assets: ${totalAssets / 1e9} USDC`)
+        console.log(`   Total rewards distributed: ${totalRewards / 1e9} USDC`)
+        console.log(`   Total yield over ${vaultAgeDays.toFixed(2)} days: ${(totalYieldRate * 100).toFixed(4)}%`)
+        console.log(`   Average daily yield rate: ${(dailyYield * 100).toFixed(6)}%`)
+        console.log(`   APR (Annual Percentage Rate): ${apr.toFixed(2)}%`)
+        console.log(`   APY (Annual Percentage Yield): ${apy.toFixed(2)}%`)
+        
+        console.log(`\n📋 Calculation Method:`)
+        console.log(`   • This calculation uses total rewards distributed as yield`)
+        console.log(`   • Assumes current asset level as baseline (simplified model)`)
+        console.log(`   • Actual performance may vary due to timing of stakes/unstakes`)
+        
+        // Show estimated future returns
+        console.log(`\n🔮 Estimated Returns (based on historical performance):`)
+        console.log(`   1 month (30 days): ${(apr / 12).toFixed(2)}% return`)
+        console.log(`   3 months (90 days): ${(apr / 4).toFixed(2)}% return`)
+        console.log(`   6 months (180 days): ${(apr / 2).toFixed(2)}% return`)
+        console.log(`   1 year (365 days): ${apr.toFixed(2)}% return (APR)`)
+        console.log(`   1 year (365 days): ${apy.toFixed(2)}% return (APY, compounded)`)
+      } else if (totalRewards === 0) {
+        console.log(`\n⚠️ Unable to calculate yield: No rewards distributed yet`)
+        console.log(`   Total rewards: ${totalRewards / 1e9} USDC`)
+        console.log(`   Wait for rewards to be added to the vault for yield calculation`)
+      } else {
+        console.log(`\n⚠️ Unable to calculate yield: Insufficient data`)
+        console.log(`   Total assets: ${totalAssets}`)
+        console.log(`   Vault age: ${vaultAgeDays.toFixed(2)} days`)
+      }
+      
+      console.log(`\n💡 Note: These calculations are based on historical performance and do not guarantee future returns.`)
+      
+      return { apy, apr }
+    } catch (error) {
+      console.error('❌ Calculate APY/APR failed:', error)
+      throw error
+    }
+  }
+
+  // Get stake statistics - all addresses and their stake amounts
+  async getStakeStatistics(): Promise<void> {
+    try {
+      console.log('📊 Fetching stake statistics...')
+      
+      const [vaultPDA] = this.getVaultPDA()
+      
+      // Get all VaultDepositor accounts for this vault
+      const depositorAccounts = await this.program.account.vaultDepositor.all([
+        {
+          memcmp: {
+            offset: 8, // Skip discriminator
+            bytes: vaultPDA.toBase58(), // Filter by vault
+          },
+        },
+      ])
+      
+      console.log(`\n👥 Stake Statistics:`)
+      console.log(`   Total stakers: ${depositorAccounts.length}`)
+      
+      if (depositorAccounts.length === 0) {
+        console.log(`   No stakers found for this vault.`)
+        return
+      }
+      
+      // Get vault info for calculations
+      const vaultAccount = await this.program.account.vault.fetch(vaultPDA)
+      const totalAssets = vaultAccount.totalAssets.toNumber()
+      const totalShares = vaultAccount.totalShares.toNumber()
+      const pendingUnstakeShares = vaultAccount.pendingUnstakeShares.toNumber()
+      const reservedAssets = vaultAccount.reservedAssets.toNumber()
+      const availableAssets = totalAssets - reservedAssets
+      const activeShares = totalShares - pendingUnstakeShares
+      
+      // Sort by stake amount (descending)
+      const stakersData = depositorAccounts
+        .map((account) => {
+          const depositor = account.account
+          const shares = depositor.shares.toNumber()
+          const totalStaked = depositor.totalStaked.toNumber()
+          const totalUnstaked = depositor.totalUnstaked.toNumber()
+          
+          // Calculate current asset value using same logic as getUserAssetValue
+          let currentValue = 0
+          if (activeShares > 0 && shares > 0) {
+            currentValue = Math.floor((shares * availableAssets) / activeShares)
+          }
+          
+          // Calculate share percentage
+          const sharePercentage = totalShares > 0 ? (shares * 100) / totalShares : 0
+          
+          return {
+            address: account.publicKey,
+            shares,
+            totalStaked,
+            totalUnstaked,
+            currentValue,
+            sharePercentage,
+            hasUnstakeRequest: depositor.unstakeRequest.shares.toNumber() > 0,
+            unstakeRequestShares: depositor.unstakeRequest.shares.toNumber(),
+          }
+        })
+        .filter(staker => staker.shares > 0) // Only show active stakers
+        .sort((a, b) => b.currentValue - a.currentValue) // Sort by current value descending
+      
+      console.log(`   Active stakers: ${stakersData.length}`)
+      console.log(`   Total vault assets: ${totalAssets / 1e9} USDC`)
+      console.log(`   Available assets: ${availableAssets / 1e9} USDC`)
+      console.log(`   Reserved assets: ${reservedAssets / 1e9} USDC`)
+      console.log(`   Total shares: ${totalShares}`)
+      console.log(`   Active shares: ${activeShares}`)
+      
+      console.log(`\n📋 Detailed Staker Information:`)
+      console.log(`${'Rank'.padEnd(4)} ${'Address'.padEnd(44)} ${'Shares'.padEnd(12)} ${'Current Value'.padEnd(15)} ${'Share %'.padEnd(8)} ${'Total Staked'.padEnd(15)} ${'Total Unstaked'.padEnd(17)} ${'Pending Unstake'}`)
+      console.log('='.repeat(140))
+      
+      stakersData.forEach((staker, index) => {
+        const rank = (index + 1).toString().padEnd(4)
+        const address = staker.address.toBase58().padEnd(44)
+        const shares = staker.shares.toString().padEnd(12)
+        const currentValue = `${(staker.currentValue / 1e9).toFixed(6)} USDC`.padEnd(15)
+        const sharePercent = `${staker.sharePercentage.toFixed(2)}%`.padEnd(8)
+        const totalStaked = `${(staker.totalStaked / 1e9).toFixed(6)} USDC`.padEnd(15)
+        const totalUnstaked = `${(staker.totalUnstaked / 1e9).toFixed(6)} USDC`.padEnd(17)
+        const pendingUnstake = staker.hasUnstakeRequest ? 
+          `${staker.unstakeRequestShares} shares` : 
+          'None'
+        
+        console.log(`${rank} ${address} ${shares} ${currentValue} ${sharePercent} ${totalStaked} ${totalUnstaked} ${pendingUnstake}`)
+      })
+      
+      // Summary statistics
+      const totalCurrentValue = stakersData.reduce((sum, staker) => sum + staker.currentValue, 0)
+      const totalStakedAmount = stakersData.reduce((sum, staker) => sum + staker.totalStaked, 0)
+      const totalUnstakedAmount = stakersData.reduce((sum, staker) => sum + staker.totalUnstaked, 0)
+      const stakersWithPendingUnstake = stakersData.filter(s => s.hasUnstakeRequest).length
+      
+      console.log('\n📈 Summary Statistics:')
+      console.log(`   Total current value: ${totalCurrentValue / 1e9} USDC`)
+      console.log(`   Total staked amount: ${totalStakedAmount / 1e9} USDC`)
+      console.log(`   Total unstaked amount: ${totalUnstakedAmount / 1e9} USDC`)
+      console.log(`   Stakers with pending unstake: ${stakersWithPendingUnstake}`)
+      console.log(`   Average stake per user: ${(totalCurrentValue / stakersData.length) / 1e9} USDC`)
+      
+      // Distribution analysis
+      if (stakersData.length > 0) {
+        const top10Percent = Math.max(1, Math.floor(stakersData.length * 0.1))
+        const top10Value = stakersData.slice(0, top10Percent).reduce((sum, s) => sum + s.currentValue, 0)
+        const top10Concentration = (top10Value / totalCurrentValue) * 100
+        
+        console.log(`\n🎯 Concentration Analysis:`)
+        console.log(`   Top 10% of stakers (${top10Percent} users) control: ${top10Concentration.toFixed(2)}% of total value`)
+        console.log(`   Largest staker controls: ${stakersData[0].sharePercentage.toFixed(2)}% of total shares`)
+        console.log(`   Smallest staker controls: ${stakersData[stakersData.length - 1].sharePercentage.toFixed(2)}% of total shares`)
+      }
+      
+    } catch (error) {
+      console.error('❌ Get stake statistics failed:', error)
       throw error
     }
   }

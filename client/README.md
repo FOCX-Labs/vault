@@ -74,6 +74,25 @@ For common users, some routine operations related to staking can be performed, b
    yarn cli depositor-info
    ```
 
+9. **Calculate APY/APR** - Calculate annual percentage yield based on vault performance
+   ```shell
+   yarn cli apy                    # Calculate APY/APR based on 30 days (default)
+   yarn cli apr 7                  # Calculate APY/APR based on 7 days
+   yarn cli apy 90                 # Calculate APY/APR based on 90 days
+   ```
+   > This shows vault performance metrics including daily yield rate, APR (simple), and APY (compound)
+
+10. **View Stake Statistics** - View detailed statistics of all stakers and their amounts
+    ```shell
+    yarn cli stake-stats            # Show all stakers with their stake amounts
+    yarn cli stakers                # Alias for stake-stats
+    ```
+    > This displays:
+    > - Total number of stakers
+    > - Individual staker addresses and their current asset values
+    > - Share percentages and rankings
+    > - Vault concentration analysis
+
 
 ## Vault Admin Operation
 For the vault admin, it can update some parameter information in the vault, including:

@@ -34,6 +34,10 @@ Available commands:
   report                   Generate complete user report
   add-rewards <amount>     Add rewards (USDC) to vault with 50/50 split
   simulate-rewards <amount> Simulate reward injection (dry run)
+  apy [days]               Calculate APY/APR based on vault performance (default: 30 days)
+  apr [days]               Calculate APY/APR based on vault performance (default: 30 days)
+  stake-stats              View detailed stake statistics and user rankings
+  stakers                  Alias for stake-stats
 
 Configuration options:
   --wallet <path>          Specify wallet file path (default: ~/.config/solana/id.json)
@@ -49,6 +53,9 @@ Examples:
   node cli.ts --wallet ./my-wallet.json stake 200  # Use specified wallet to stake 200 USDC
   node cli.ts add-rewards 100                   # Add 100 USDC rewards (50% to platform, 50% to users)
   node cli.ts simulate-rewards 50               # Simulate adding 50 USDC rewards (dry run)
+  node cli.ts apy                               # Calculate APY/APR based on 30 days performance
+  node cli.ts apr 7                             # Calculate APY/APR based on 7 days performance
+  node cli.ts stake-stats                       # View all stakers and their amounts
 `
 
 // Get option value
@@ -190,6 +197,24 @@ async function main() {
         }
         console.log(`🔍 Simulating ${simulateAmount} USDC reward injection...`)
         await operations.simulateRewardInjection(simulateAmount * 1e9)
+        break
+
+      case 'apy':
+      case 'apr':
+        const periodDays = args[1] ? parseInt(args[1]) : 30
+        if (isNaN(periodDays) || periodDays <= 0) {
+          console.log('📈 Calculating APY/APR (using default 30 days period)...')
+          await operations.calculateAPYAPR()
+        } else {
+          console.log(`📈 Calculating APY/APR based on ${periodDays} days period...`)
+          await operations.calculateAPYAPR(periodDays)
+        }
+        break
+
+      case 'stake-stats':
+      case 'stakers':
+        console.log('📊 Getting stake statistics...')
+        await operations.getStakeStatistics()
         break
 
       default:
