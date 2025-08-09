@@ -347,15 +347,13 @@ export class VaultUserOperations {
         vaultDepositorPDA
       )
 
+      // Calculate user's active stake value
+      const activeStakeValue = await this.getUserAssetValue()
+
       console.log('👤 user info:')
       console.log(`shares: ${depositorAccount.shares.toNumber()}`)
       console.log(
-        `total staked: ${depositorAccount.totalStaked.toNumber() / 1e9} USDC`
-      )
-      console.log(
-        `total unstaked: ${
-          depositorAccount.totalUnstaked.toNumber() / 1e9
-        } USDC`
+        `active stake: ${(activeStakeValue / 1e9).toFixed(6)} USDC`
       )
       console.log(`last rebase version: ${depositorAccount.lastRebaseVersion}`)
 
