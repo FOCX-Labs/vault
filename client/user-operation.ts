@@ -360,8 +360,14 @@ export class VaultUserOperations {
       // unstake request info
       const unstakeRequest = depositorAccount.unstakeRequest
       if (unstakeRequest.shares.toNumber() > 0) {
+        // Calculate USDC amount for unstake request
+        const PRECISION = 1e12 // 1e12 as defined in constants.rs(decimal of shares)
+        const shares = unstakeRequest.shares.toNumber()
+        const assetPerShare = Number(unstakeRequest.assetPerShareAtRequest.toString())
+        const unstakeUSDCAmount = (shares * assetPerShare) / PRECISION
         console.log('📤 unstake request:')
-        console.log(`request shares: ${unstakeRequest.shares.toNumber()}`)
+        console.log(`request shares: ${shares}`)
+        console.log(`unstake amount: ${(unstakeUSDCAmount / 1e9).toFixed(6)} USDC`)
         console.log(
           `request time: ${new Date(
             unstakeRequest.requestTime.toNumber() * 1000
@@ -485,7 +491,15 @@ export class VaultUserOperations {
       const remainingTime = Math.max(0, unlockTime - currentTime)
       const canUnstake = remainingTime === 0
 
+      // Calculate USDC amount for unstake request
+      const PRECISION = 1e12 // 1e12 as defined in constants.rs
+      const shares = unstakeRequest.shares.toNumber()
+      const assetPerShare = Number(unstakeRequest.assetPerShareAtRequest.toString())
+      const unstakeUSDCAmount = (shares * assetPerShare) / PRECISION
+
       console.log('⏰ unstake request status:')
+      console.log(`request shares: ${shares}`)
+      console.log(`unstake amount: ${(unstakeUSDCAmount / 1e9).toFixed(6)} USDC`)
       console.log(
         `request time: ${new Date(requestTime * 1000).toLocaleString()}`
       )
@@ -902,7 +916,7 @@ export class VaultUserOperations {
           const sharePercentage = totalShares > 0 ? (shares * 100) / totalShares : 0
           
           return {
-            address: account.publicKey,
+            address: depositor.authority,
             shares,
             totalStaked,
             totalUnstaked,
