@@ -45,6 +45,26 @@ pub fn request_unstake(
         return Err(VaultError::StakeCooldownNotMet.into());
     }
     
+    // CRITICAL FIX: Handle existing unstake request to prevent double counting
+    let existing_unstake_request = vault_depositor.unstake_request.clone();
+    if existing_unstake_request.is_pending() {
+        // Restore previously frozen shares and assets to vault totals
+        let old_shares = existing_unstake_request.shares;
+        let old_freeze_amount = SafeCast::<u128>::safe_cast(&old_shares)?
+            .safe_mul(existing_unstake_request.asset_per_share_at_request)?
+            .safe_div(SafeCast::<u128>::safe_cast(&PRECISION)?)?
+            .safe_cast()?;
+        
+        // Restore vault counters
+        vault.pending_unstake_shares = vault.pending_unstake_shares.safe_sub(old_shares)?;
+        vault.reserved_assets = vault.reserved_assets.safe_sub(old_freeze_amount)?;
+        
+        // Restore user's shares
+        vault_depositor.shares = vault_depositor.shares.safe_add(old_shares)?;
+        
+        msg!("Cancelled previous unstake request: {} shares, {} assets restored", old_shares, old_freeze_amount);
+    }
+
     // Calculate current active share value once for consistency
     let asset_per_share = vault.get_active_share_value()?;
     
